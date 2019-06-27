@@ -39,7 +39,7 @@ sampleN = Parser.Results.sampleN;
 %% For each combination of g and s generate samples and eye outputs
 
 % All combinations
-[Gs,Ss] = meshgrid(gs,ss);
+[Ss,Gs] = meshgrid(ss,gs);
 
 % Generate noise
 COV = [sigma_g^2, sigma_gs^2; sigma_gs^2, sigma_s^2];
@@ -59,7 +59,7 @@ vE = var(Es - repmat(mE,[1,1,sampleN]),[],3);
 
 %% Theoretical results
 M = Gs.*Ss;
-VAR = sigma_s^2*Gs.^2 + sigma_s^2*sigma_g^2 + sigma_g^2*Ss.^2;
+VAR = (sigma_s^2+w^2*Ss.^2).*Gs.^2 + sigma_s^2*sigma_g^2 + sigma_g^2*Ss.^2;
 
 %% Analyze
 % figure
@@ -76,11 +76,11 @@ VAR = sigma_s^2*Gs.^2 + sigma_s^2*sigma_g^2 + sigma_g^2*Ss.^2;
 %%
 figure
 subplot(1,2,1)
-surf(Gs,Ss,vE,'EdgeColor','none')
-xlabel('Gain')
-ylabel('Speed')
+surf(Ss,Gs,vE,'EdgeColor','none')
+xlabel('Speed')
+ylabel('Gain')
 
 subplot(1,2,2)
-surf(Gs,Ss,VAR,'EdgeColor','none')
-xlabel('Gain')
-ylabel('Speed')
+surf(Ss,Gs,VAR,'EdgeColor','none')
+xlabel('Speed')
+ylabel('Gain')
