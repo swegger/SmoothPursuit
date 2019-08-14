@@ -17,6 +17,7 @@ addParameter(Parser,'epsilon',250)
 addParameter(Parser,'gainNoise',0.1)
 addParameter(Parser,'k',0.65)
 addParameter(Parser,'b',[0, 0])
+addParameter(Parser,'gainSDN',false)
 addParameter(Parser,'plotflg',true)
 
 parse(Parser,n,tuning,s,varargin{:})
@@ -28,6 +29,7 @@ epsilon = Parser.Results.epsilon;
 gainNoise = Parser.Results.gainNoise;
 k = Parser.Results.k;
 b = Parser.Results.b;
+gainSDN = Parser.Results.gainSDN;
 plotflg = Parser.Results.plotflg;
 
 %% Decode trial-by-trial population responses
@@ -37,8 +39,14 @@ denominator = (epsilon + sum(n,4));
 
 
 gain = (gainFunction(n,tuning,0) + b(1))./(sum(n,4) + b(2));
-gain = gain + ...
-    gainNoise*gain.*randn([size(n,1),size(n,2),size(n,3)]);
+if gainSDN
+    gain = gain + ...
+        gainNoise*gain.*randn([size(n,1),size(n,2),size(n,3)]);
+else
+    gain = gain + ...
+        gainNoise*randn([size(n,1),size(n,2),size(n,3)]);
+end
+    
 % gain = 1;
 
 vA = gain.*numerator./repmat(denominator,[1,1,1,2]);
