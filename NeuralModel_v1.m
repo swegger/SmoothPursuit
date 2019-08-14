@@ -7,7 +7,7 @@ function [n, M, rNN, e] = NeuralModel_v1(varargin)
 
 %% Defaults
 thetas_default = linspace(-90,90,4);
-speeds_default = cumprod(2*ones(1,6));
+speeds_default = 2.^(linspace(-1,8,20)); %cumprod(2*ones(1,6));
 
 [Ts, Ss] = meshgrid(thetas_default,speeds_default);
 
@@ -21,21 +21,25 @@ tuning_default.speed.d = 0.1;
 tuning_default.n0 = 1;
 tuning_default.Cov.sigf = 0.36;
 tuning_default.Cov.thetaLengthConstant = 0.3;
-tuning_default.Cov.speedLengthConstant = 0.4;
+tuning_default.Cov.speedLengthConstant = 4.4;
 tuning_default.Cov.alpha = 0;
 
 %% Parse inputs
 Parser = inputParser;
 
-addParameter('thetas',thetas_default)
-addParameter('speeds',speeds_default)
-addParameter('tuning',tuning_default)
+addParameter(Parser,'thetas',thetas_default)
+addParameter(Parser,'speeds',speeds_default)
+addParameter(Parser,'tuning',tuning_default)
 
 parse(Parser,varargin{:})
 
 thetas = Parser.Results.thetas;
 speeds = Parser.Results.speeds;
 tuning = Parser.Results.tuning;
+
+%% Decoder properties
+[Ds,Ss] = meshgrid(thetas,speeds);
+s = cat(3,Ds',Ss');
 
 %% Simulate MT and then decode
 
