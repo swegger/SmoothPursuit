@@ -18,6 +18,7 @@ addParameter(Parser,'gainNoise',0.1)
 addParameter(Parser,'k',0.65)
 addParameter(Parser,'b',[0, 0])
 addParameter(Parser,'gainSDN',false)
+addParameter(Parser,'pool',NaN)
 addParameter(Parser,'plotflg',true)
 
 parse(Parser,n,tuning,s,varargin{:})
@@ -30,12 +31,21 @@ gainNoise = Parser.Results.gainNoise;
 k = Parser.Results.k;
 b = Parser.Results.b;
 gainSDN = Parser.Results.gainSDN;
+pool = Parser.Results.pool;
 plotflg = Parser.Results.plotflg;
+
+if any(isnan(pool))
+    pool = true(size(n,4),1);
+    dpool = pool;
+else
+    dpool = ~pool;
+end
 
 %% Decode trial-by-trial population responses
 n(n<0) = 0;
-numerator = vectorAverage(n,tuning);
-denominator = (epsilon + sum(n,4));
+numerator = vectorAverage(n,tuning,pool);
+% denominator = (epsilon + sum(n(:,:,:,dpool),4));
+denominator = epsilon + sqrt(sum(huangAndLisberger(n,tuning,dpool).^2,4));
 
 
 gain = (gainFunction(n,tuning,0) + b(1))./(sum(n,4) + b(2));
@@ -47,14 +57,17 @@ else
         gainNoise*randn([size(n,1),size(n,2),size(n,3)]);
 end
     
-% gain = 1;
+gain = 1;
 
 vA = gain.*numerator./repmat(denominator,[1,1,1,2]);
 temp = atan2d(vA(:,:,:,2),vA(:,:,:,1));
 % temp(temp < 0) = temp(temp < 0) + 360;
 e(:,:,:,1) = temp;
+
+e(:,:,:,2) = sum((vA).^2,4);
+
 % e(:,:,:,2) = 2.^(sqrt(sum((vA).^2,4)));
-e(:,:,:,2) = 2.^(sqrt(sqrt(sum((vA).^2,4))));
+% e(:,:,:,2) = 2.^(sqrt(sqrt(sum((vA).^2,4))));
 
 %% Correlation with MT
 % z-score
@@ -185,13 +198,13 @@ end
 %% Functions
 
 %% vectorAverage
-function out = vectorAverage(n,tuning)
+function out = vectorAverage(n,tuning,pool)
 for thetai = 1:size(n,1)
     for speedi = 1:size(n,2)
-        out(thetai,speedi,:,1) = cosd(tuning.theta.pref)'.*log2(tuning.speed.pref)' ...
-            * permute(n(thetai,speedi,:,:),[4,3,1,2]);
-        out(thetai,speedi,:,2) = sind(tuning.theta.pref)'.*log2(tuning.speed.pref)' ...
-            * permute(n(thetai,speedi,:,:),[4,3,1,2]);
+        out(thetai,speedi,:,1) = cosd(tuning.theta.pref(pool))'.*log2(tuning.speed.pref(pool))' ...
+            * permute(n(thetai,speedi,:,pool),[4,3,1,2]);
+        out(thetai,speedi,:,2) = sind(tuning.theta.pref(pool))'.*log2(tuning.speed.pref(pool))' ...
+            * permute(n(thetai,speedi,:,pool),[4,3,1,2]);
     end
 end
 
@@ -209,5 +222,17 @@ for thetai = 1:size(n,1)
 %             * permute(n(thetai,speedi,:,:),[4,3,1,2]);
 %         out(thetai,speedi,:) = out(thetai,speedi,:) + ...
 %             out(thetai,speedi,:)*gainNoise.*randn(1,1,size(n,3));
+    end
+end
+
+%% huang&Lisberger
+function out = huangAndLisberger(n,tuning,dpool)
+%%
+for thetai = 1:size(n,1)
+    for speedi = 1:size(n,2)
+        out(thetai,speedi,:,1) = cosd(tuning.theta.pref(dpool))'*...
+            permute(n(thetai,speedi,:,dpool),[4,3,1,2]);
+        out(thetai,speedi,:,2) = sind(tuning.theta.pref(dpool))'*...
+            permute(n(thetai,speedi,:,dpool),[4,3,1,2]);
     end
 end

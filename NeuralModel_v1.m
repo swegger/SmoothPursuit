@@ -52,10 +52,11 @@ for szi = 1:length(sizes)
 end
 
 %% Run simulations
-for ni = 1:length(N)
-    disp(N(ni))
+h = figure;
+for szi = 1:length(N)
+    disp(N(szi))
     % Generate population tuning parameters
-    tuning = tuningFunctions(N(ni),theta,speed,Cov,n0);
+    tuning = tuningFunctions(N(szi),theta,speed,Cov,n0);
     
     % Decoder properties
     [Ds,Ss] = meshgrid(thetas,speeds);
@@ -63,15 +64,20 @@ for ni = 1:length(N)
     
     % Simulate MT and then decode
     
-    [n, M, rNN, ~, tuning] = SimpleMT(thetas,speeds,'trialN',500,'tuning',tuning,'plotflg',false);
-    e = DecodeMT(n,tuning,s,'gainNoise',0.1);%,'plotflg',false);
+    [n, M, rNN, ~, tuning] = SimpleMT(thetas,speeds,'trialN',400,'tuning',tuning,'plotflg',true);
+    e = DecodeMT(n,tuning,s,'gainNoise',0);%,'plotflg',false);
     
     eBar = mean(e,3);
     eVar = var(e,1,3);
     
-    VeM(:,:,ni) = squeeze(eBar(:,:,:,2));
-    VeVAR(:,:,ni) = squeeze(eVar(:,:,:,2));
+    VeM(:,:,szi) = squeeze(eBar(:,:,:,2));
+    VeVAR(:,:,szi) = squeeze(eVar(:,:,:,2));
 
+    figure(h)
+    subplot(1,length(N),szi)
+    plot(speeds,squeeze(e(1,:,:,2)),'ko')
+    hold on
+    plotUnity;
 end
 %% Plotting
 Ncolors = colormap('lines');
@@ -81,12 +87,13 @@ Ncolors = colormap('lines');
                   0   0   0];
 
 Ncolors = [szcolors; Ncolors];
+% figure
 for di = 1:length(thetas)
     subplot(1,length(thetas),di)
-    for ni = 1:length(N)
+    for szi = 1:length(N)
         %         for si = 1:length(speeds)
-        plot(VeM(di,:,ni),VeVAR(di,:,ni),'o','Color',Ncolors(ni,:),...
-            'MarkerFaceColor',Ncolors(ni,:))
+        plot(VeM(di,:,szi),VeVAR(di,:,szi),'o','Color',Ncolors(szi,:),...
+            'MarkerFaceColor',Ncolors(szi,:))
         hold on
         %         end
         xlabel('Mean eye speed (deg/s)')
