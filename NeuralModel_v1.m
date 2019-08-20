@@ -11,16 +11,16 @@ speeds_default = 2.^(linspace(-1,8,20)); %cumprod(2*ones(1,6));
 
 theta_default.range = [-90,90,1800];
 theta_default.Amp = 10;
-theta_default.sig = 45;
+theta_default.sig = 100;
 
 speed_default.range = [-1,8,1000];
 speed_default.Amp = 10;
-speed_default.sig = 1;
+speed_default.sig = 1.45;
 speed_default.d = 0.1;
 
 Cov_default.sigf = 0.36;
-Cov_default.thetaLengthConstant = 0.3;
-Cov_default.speedLengthConstant = 0.4;
+Cov_default.thetaLengthConstant = 0.4;
+Cov_default.speedLengthConstant = 0.3;
 Cov_default.alpha = 0;
 
 %% Parse inputs
@@ -33,6 +33,7 @@ addParameter(Parser,'theta',theta_default)
 addParameter(Parser,'speed',speed_default)
 addParameter(Parser,'Cov',Cov_default)
 addParameter(Parser,'n0',1)
+addParameter(Parser,'epsilon',250)
 
 parse(Parser,varargin{:})
 
@@ -43,6 +44,7 @@ theta = Parser.Results.theta;
 speed = Parser.Results.speed;
 Cov = Parser.Results.Cov;
 n0 = Parser.Results.n0;
+epsilon = Parser.Results.epsilon;
 
 %% Generate population sizes
 % fun=@(x1) (1.14*x1.^-0.76); % Albright & Desimone 87 Exp Brain Res (mm/deg)
@@ -65,7 +67,7 @@ for szi = 1:length(N)
     % Simulate MT and then decode
     
     [n, M, rNN, ~, tuning] = SimpleMT(thetas,speeds,'trialN',400,'tuning',tuning,'plotflg',true);
-    e = DecodeMT(n,tuning,s,'gainNoise',0);%,'plotflg',false);
+    e = DecodeMT(n,tuning,s,'gainNoise',0,'epsilon',epsilon);%,'plotflg',false);
     
     eBar = mean(e,3);
     eVar = var(e,1,3);

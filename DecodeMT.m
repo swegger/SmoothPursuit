@@ -64,9 +64,9 @@ temp = atan2d(vA(:,:,:,2),vA(:,:,:,1));
 % temp(temp < 0) = temp(temp < 0) + 360;
 e(:,:,:,1) = temp;
 
-e(:,:,:,2) = sum((vA).^2,4);
+% e(:,:,:,2) = sum((vA).^2,4);
 
-% e(:,:,:,2) = 2.^(sqrt(sum((vA).^2,4)));
+e(:,:,:,2) = 2.^(sqrt(sum((vA).^2,4)));
 % e(:,:,:,2) = 2.^(sqrt(sqrt(sum((vA).^2,4))));
 
 %% Correlation with MT
