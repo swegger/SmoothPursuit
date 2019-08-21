@@ -33,7 +33,7 @@ addParameter(Parser,'theta',theta_default)
 addParameter(Parser,'speed',speed_default)
 addParameter(Parser,'Cov',Cov_default)
 addParameter(Parser,'n0',1)
-addParameter(Parser,'epsilon',250)
+addParameter(Parser,'epsilon',0.05)
 
 parse(Parser,varargin{:})
 
@@ -53,8 +53,19 @@ for szi = 1:length(sizes)
     N(szi) = ceil(20*(integral(fun,0.5,sizes(szi))+9));
 end
 
+%% Initial simulation w/ maximum number of neurons
+% Generate population tuning parameters
+    tuning = tuningFunctions(max(N),theta,speed,Cov,n0);
+    
+    % Decoder properties
+    [Ds,Ss] = meshgrid(thetas,speeds);
+    s = cat(3,Ds',Ss');
+    
+    % Simulate MT and then decode    
+    [n, M, rNN, ~, tuning] = SimpleMT(thetas,speeds(end),'trialN',400,'tuning',tuning,'plotflg',false);
+    normalizer = [mean(sqrt(sum(n(1,end,:,:),4)),3) 0];
+
 %% Run simulations
-h = figure;
 for szi = 1:length(N)
     disp(N(szi))
     % Generate population tuning parameters
@@ -67,37 +78,52 @@ for szi = 1:length(N)
     % Simulate MT and then decode
     
     [n, M, rNN, ~, tuning] = SimpleMT(thetas,speeds,'trialN',400,'tuning',tuning,'plotflg',true);
-    e = DecodeMT(n,tuning,s,'gainNoise',0,'epsilon',epsilon);%,'plotflg',false);
+    e{szi} = DecodeMT(n,tuning,s,'gainNoise',0.1,'epsilon',epsilon,'b',normalizer);%,'plotflg',false);
     
-    eBar = mean(e,3);
-    eVar = var(e,1,3);
+    eBar = mean(e{szi},3);
+    eVar = var(e{szi},1,3);
     
     VeM(:,:,szi) = squeeze(eBar(:,:,:,2));
     VeVAR(:,:,szi) = squeeze(eVar(:,:,:,2));
 
-    figure(h)
+%     figure(h)
+%     subplot(1,length(N),szi)
+%     plot(speeds,squeeze(e{szi}(1,:,:,2)),'ko')
+%     hold on
+%     plotUnity;
+end
+%% Plotting
+h = figure;
+for szi = 1:length(N)
     subplot(1,length(N),szi)
-    plot(speeds,squeeze(e(1,:,:,2)),'ko')
+    plot(speeds,squeeze(e{szi}(1,:,:,2)),'ko')
     hold on
     plotUnity;
 end
-%% Plotting
+
+figure;
 Ncolors = colormap('lines');
 
     szcolors = [0.8 0.8 0.8;...
                 0.5 0.5 0.5;...
                   0   0   0];
-
+              
 Ncolors = [szcolors; Ncolors];
+
+colors = projectColorMaps('speeds','samples',1:length(speeds),...
+    'sampleDepth',length(speeds));
+
 % figure
 for di = 1:length(thetas)
     subplot(1,length(thetas),di)
     for szi = 1:length(N)
-        %         for si = 1:length(speeds)
-        plot(VeM(di,:,szi),VeVAR(di,:,szi),'o','Color',Ncolors(szi,:),...
-            'MarkerFaceColor',Ncolors(szi,:))
-        hold on
-        %         end
+        for si = 1:length(speeds)
+            %         for si = 1:length(speeds)
+            plot(VeM(di,si,szi),VeVAR(di,si,szi),'s','Color',colors(si,:),...
+                'MarkerFaceColor',Ncolors(szi,:),'MarkerSize',10)
+            hold on
+            %         end
+        end
         xlabel('Mean eye speed (deg/s)')
         ylabel('Eye speed variance (deg/s)^2')
     end
