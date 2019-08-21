@@ -44,11 +44,15 @@ end
 %% Decode trial-by-trial population responses
 n(n<0) = 0;
 numerator = vectorAverage(n,tuning,pool);
-% denominator = (epsilon + sum(n(:,:,:,dpool),4));
-denominator = epsilon + sqrt(sum(huangAndLisberger(n,tuning,dpool).^2,4));
+denominator = (epsilon + sum(n(:,:,:,dpool),4));
+% denominator = epsilon + sqrt(sum(huangAndLisberger(n,tuning,dpool).^2,4));
 
+% Darlington et. al. 2018
+% gain = (gainFunction(n,tuning,0) + b(1))./(sum(n,4) + b(2));
 
-gain = (gainFunction(n,tuning,0) + b(1))./(sum(n,4) + b(2));
+% Multisize
+gain = sqrt(sum(n,4))/b(1);
+
 if gainSDN
     gain = gain + ...
         gainNoise*gain.*randn([size(n,1),size(n,2),size(n,3)]);
@@ -57,9 +61,9 @@ else
         gainNoise*randn([size(n,1),size(n,2),size(n,3)]);
 end
     
-gain = 1;
+%gain = 1;
 
-vA = gain.*numerator./repmat(denominator,[1,1,1,2]);
+vA = repmat(gain,[1,1,1,2]).*numerator./repmat(denominator,[1,1,1,2]);
 temp = atan2d(vA(:,:,:,2),vA(:,:,:,1));
 % temp(temp < 0) = temp(temp < 0) + 360;
 e(:,:,:,1) = temp;
