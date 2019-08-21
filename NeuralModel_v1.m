@@ -78,7 +78,7 @@ for szi = 1:length(N)
     % Simulate MT and then decode
     
     [n, M, rNN, ~, tuning] = SimpleMT(thetas,speeds,'trialN',400,'tuning',tuning,'plotflg',true);
-    e{szi} = DecodeMT(n,tuning,s,'gainNoise',0.1,'epsilon',epsilon,'b',normalizer);%,'plotflg',false);
+    e{szi} = DecodeMT(n,tuning,s,'gainNoise',0.15,'epsilon',epsilon,'b',normalizer);%,'plotflg',false);
     
     eBar = mean(e{szi},3);
     eVar = var(e{szi},1,3);
