@@ -34,6 +34,7 @@ addParameter(Parser,'speed',speed_default)
 addParameter(Parser,'Cov',Cov_default)
 addParameter(Parser,'n0',1)
 addParameter(Parser,'epsilon',0.05)
+addParameter(Parser,'gainNoise',0)
 
 parse(Parser,varargin{:})
 
@@ -45,6 +46,7 @@ speed = Parser.Results.speed;
 Cov = Parser.Results.Cov;
 n0 = Parser.Results.n0;
 epsilon = Parser.Results.epsilon;
+gainNoise = Parser.Results.gainNoise;
 
 %% Generate population sizes
 % fun=@(x1) (1.14*x1.^-0.76); % Albright & Desimone 87 Exp Brain Res (mm/deg)
@@ -62,8 +64,9 @@ end
     s = cat(3,Ds',Ss');
     
     % Simulate MT and then decode    
-    [n, M, rNN, ~, tuning] = SimpleMT(thetas,speeds(end),'trialN',400,'tuning',tuning,'plotflg',false);
-    normalizer = [mean(sqrt(sum(n(1,end,:,:),4)),3) 0];
+%     [n, M, rNN, ~, tuning] = SimpleMT(thetas,speeds(end),'trialN',400,'tuning',tuning,'plotflg',false);
+%     normalizer = [mean(sqrt(sum(n(1,end,:,:),4)),3) 0];
+    normalizer = sqrt(1+(1-tuning.Cov.sigf)*max(N));
 
 %% Run simulations
 for szi = 1:length(N)
@@ -78,7 +81,7 @@ for szi = 1:length(N)
     % Simulate MT and then decode
     
     [n, M, rNN, ~, tuning] = SimpleMT(thetas,speeds,'trialN',400,'tuning',tuning,'plotflg',true);
-    e{szi} = DecodeMT(n,tuning,s,'gainNoise',0.15,'epsilon',epsilon,'b',normalizer);%,'plotflg',false);
+    e{szi} = DecodeMT(n,tuning,s,'gainNoise',gainNoise,'epsilon',epsilon,'b',normalizer);%,'plotflg',false);
     
     eBar = mean(e{szi},3);
     eVar = var(e{szi},1,3);
@@ -93,12 +96,16 @@ for szi = 1:length(N)
 %     plotUnity;
 end
 %% Plotting
-h = figure;
+h = figure('Name','Target v Eye speed','Position',[664 822 1530 387]);
 for szi = 1:length(N)
     subplot(1,length(N),szi)
     plot(speeds,squeeze(e{szi}(1,:,:,2)),'ko')
     hold on
     plotUnity;
+    axis square
+    xlabel('Target speed (deg/s)')
+    ylabel('Eye speed (deg/s)')
+    mymakeaxis(gca);
 end
 
 figure;

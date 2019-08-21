@@ -51,7 +51,9 @@ denominator = (epsilon + sum(n(:,:,:,dpool),4));
 % gain = (gainFunction(n,tuning,0) + b(1))./(sum(n,4) + b(2));
 
 % Multisize
-gain = sqrt(sum(n,4))/b(1);
+gain = gainFunction(n,tuning,0)./sum(n,4) * sqrt(1+(1-tuning.Cov.sigf)*size(n,4))/b(1);
+% gain = sqrt(1+(1-tuning.Cov.sigf)*size(n,4))/b(1);
+% gain = sqrt(sum(n,4))/b(1);
 
 if gainSDN
     gain = gain + ...
@@ -70,8 +72,8 @@ e(:,:,:,1) = temp;
 
 % e(:,:,:,2) = sum((vA).^2,4);
 
-e(:,:,:,2) = 2.^(sqrt(sum((vA).^2,4)));
-% e(:,:,:,2) = 2.^(sqrt(sqrt(sum((vA).^2,4))));
+% e(:,:,:,2) = 2.^(sqrt(sum((vA).^2,4)));
+e(:,:,:,2) = 2.^(sqrt(sqrt(sum((vA).^2,4))));
 
 %% Correlation with MT
 % z-score
