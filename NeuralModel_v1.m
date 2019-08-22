@@ -66,7 +66,7 @@ end
     % Simulate MT and then decode    
 %     [n, M, rNN, ~, tuning] = SimpleMT(thetas,speeds(end),'trialN',400,'tuning',tuning,'plotflg',false);
 %     normalizer = [mean(sqrt(sum(n(1,end,:,:),4)),3) 0];
-    normalizer = sqrt(1+(1-tuning.Cov.sigf)*max(N));
+    normalizer = (1+(1-tuning.Cov.sigf)*max(N));
 
 %% Run simulations
 for szi = 1:length(N)
