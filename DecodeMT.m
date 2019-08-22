@@ -51,7 +51,8 @@ denominator = (epsilon + sum(n(:,:,:,dpool),4));
 % gain = (gainFunction(n,tuning,0) + b(1))./(sum(n,4) + b(2));
 
 % Multisize
-gain = gainFunction(n,tuning,0)./sum(n,4) * (1+(1-tuning.Cov.sigf)*size(n,4))/b(1);
+gain = gainFunction(n,tuning,0)./b(1);
+% gain = gainFunction(n,tuning,0)./sum(n,4) * (1+(1-tuning.Cov.sigf)*size(n,4))/b(1);
 % gain = sqrt(1+(1-tuning.Cov.sigf)*size(n,4))/b(1);
 % gain = sqrt(sum(n,4))/b(1);
 

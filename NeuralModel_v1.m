@@ -64,9 +64,10 @@ end
     s = cat(3,Ds',Ss');
     
     % Simulate MT and then decode    
-%     [n, M, rNN, ~, tuning] = SimpleMT(thetas,speeds(end),'trialN',400,'tuning',tuning,'plotflg',false);
+    [n, M, rNN, ~, tuning] = SimpleMT(thetas,speeds(end),'trialN',400,'tuning',tuning,'plotflg',false);
 %     normalizer = [mean(sqrt(sum(n(1,end,:,:),4)),3) 0];
-    normalizer = (1+(1-tuning.Cov.sigf)*max(N));
+    normalizer = [120*mean(sqrt(sum(n(1,end,:,:),4)),3) 0];
+%     normalizer = (1+(1-tuning.Cov.sigf)*max(N));
 
 %% Run simulations
 for szi = 1:length(N)
@@ -95,6 +96,11 @@ for szi = 1:length(N)
 %     hold on
 %     plotUnity;
 end
+
+%% Fit gainSDN model across sizes
+OPTIONS = optimset('Display','off');
+[w,sigG] = fit_gainSDN(speeds,VeM,VeVAR,0.1,gainNoise,OPTIONS);
+
 %% Plotting
 h = figure('Name','Target v Eye speed','Position',[664 822 1530 387]);
 for szi = 1:length(N)
@@ -129,6 +135,8 @@ for di = 1:length(thetas)
             plot(VeM(di,si,szi),VeVAR(di,si,szi),'s','Color',colors(si,:),...
                 'MarkerFaceColor',Ncolors(szi,:),'MarkerSize',10)
             hold on
+            plot(VeM(di,si,szi),gainSDN(VeM(di,si,szi),speeds(si),w,sigG),'o',...
+                'Color',colors(si,:),'MarkerFaceColor',Ncolors(szi,:),'MarkerSize',10)
             %         end
         end
         xlabel('Mean eye speed (deg/s)')
@@ -139,6 +147,7 @@ end
 
 %% Functions
 
+%% tuningFunctions
 function tuning = tuningFunctions(N,theta,speed,Cov,n0)
 
     thetas = linspace(theta.range(1),theta.range(2),theta.range(3));
@@ -157,3 +166,16 @@ function tuning = tuningFunctions(N,theta,speed,Cov,n0)
     tuning.n0 = n0;
     
     tuning.Cov = Cov;
+    
+%% fit_gainSDN
+function [w, sigG] = fit_gainSDN(speeds,VeM,VeVAR,w0,sigG0,OPTIONS)
+    %%
+    minimizer = @(p)( sum( sum( (VeVAR - gainSDN(VeM,repmat(speeds(:)',[size(VeM,1),1,size(VeM,3)]),p(1),p(2))).^2 ) ) );
+    p = fmincon(minimizer,[w0 sigG0],[],[],[],[],[0,0],[Inf,Inf],[],OPTIONS);
+    w = p(1);
+    sigG = p(2);
+    
+%% gainSDN
+function v = gainSDN(ve,vs,w,sigG)
+    %%
+    v = w.^2.*ve.^2 + (sigG.^2 + sigG.^2.*w.^2).*vs.^2;
