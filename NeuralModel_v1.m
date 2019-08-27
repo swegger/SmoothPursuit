@@ -101,6 +101,13 @@ end
 OPTIONS = optimset('Display','off');
 [w,sigG] = fit_gainSDN(speeds,VeM,VeVAR,0.1,gainNoise,OPTIONS);
 
+%% Estimate gain
+for szi = 1:length(sizes)
+    ys = e{szi}(1,:,:,2);
+    xs = repmat(speeds,[size(ys,1),1,size(ys,3)]);
+    betas(:,szi) = regress(ys(:),[xs(:) ones(size(xs(:)))]);
+end
+
 %% Plotting
 h = figure('Name','Target v Eye speed','Position',[664 822 1530 387]);
 for szi = 1:length(N)
@@ -108,6 +115,8 @@ for szi = 1:length(N)
     plot(speeds,squeeze(e{szi}(1,:,:,2)),'ko')
     hold on
     plotUnity;
+    xs = linspace(min(speeds),max(speeds),100);
+    plot(xs,betas(1,szi)*xs+betas(2,szi),'r-')
     axis square
     xlabel('Target speed (deg/s)')
     ylabel('Eye speed (deg/s)')
@@ -135,10 +144,12 @@ for di = 1:length(thetas)
             plot(VeM(di,si,szi),VeVAR(di,si,szi),'s','Color',colors(si,:),...
                 'MarkerFaceColor',Ncolors(szi,:),'MarkerSize',10)
             hold on
-            plot(VeM(di,si,szi),gainSDN(VeM(di,si,szi),speeds(si),w,sigG),'o',...
-                'Color',colors(si,:),'MarkerFaceColor',Ncolors(szi,:),'MarkerSize',10)
+%             plot(VeM(di,si,szi),gainSDN(VeM(di,si,szi),speeds(si),w,sigG),'o',...
+%                 'Color',colors(si,:),'MarkerFaceColor',Ncolors(szi,:),'MarkerSize',10)
             %         end
         end
+        x = linspace(0,max(speeds),100);
+        plot(betas(1,szi)*x+betas(2,szi),gainSDN(betas(1,szi)*x+betas(2,szi),x,w,sigG),'-','Color',Ncolors(szi,:))
         xlabel('Mean eye speed (deg/s)')
         ylabel('Eye speed variance (deg/s)^2')
     end
