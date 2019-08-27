@@ -57,17 +57,13 @@ end
 
 %% Initial simulation w/ maximum number of neurons
 % Generate population tuning parameters
-    tuning = tuningFunctions(max(N),theta,speed,Cov,n0);
-    
-    % Decoder properties
-    [Ds,Ss] = meshgrid(thetas,speeds);
-    s = cat(3,Ds',Ss');
-    
-    % Simulate MT and then decode    
-    [n, M, rNN, ~, tuning] = SimpleMT(thetas,speeds(end),'trialN',400,'tuning',tuning,'plotflg',false);
-%     normalizer = [mean(sqrt(sum(n(1,end,:,:),4)),3) 0];
-    normalizer = [120*mean(sqrt(sum(n(1,end,:,:),4)),3) 0];
-%     normalizer = (1+(1-tuning.Cov.sigf)*max(N));
+tuning = tuningFunctions(max(N),theta,speed,Cov,n0);
+
+% Simulate MT and then decode    
+[n, M, rNN, ~, tuning] = SimpleMT(thetas,speeds,'trialN',400,'tuning',tuning,'plotflg',false);
+
+gainTemp = gainFunction(n(1,:,:,:),tuning,0);
+normalizer = [mean(gainTemp(:))/mean(log2(speeds)), 0]; % For -90 90 theta range
 
 %% Run simulations
 for szi = 1:length(N)
@@ -81,7 +77,7 @@ for szi = 1:length(N)
     
     % Simulate MT and then decode
     
-    [n, M, rNN, ~, tuning] = SimpleMT(thetas,speeds,'trialN',400,'tuning',tuning,'plotflg',true);
+    [n, M, rNN, ~, tuning] = SimpleMT(thetas,speeds,'trialN',400,'tuning',tuning,'plotflg',false);
     e{szi} = DecodeMT(n,tuning,s,'gainNoise',gainNoise,'epsilon',epsilon,'b',normalizer);%,'plotflg',false);
     
     eBar = mean(e{szi},3);
@@ -190,3 +186,20 @@ function [w, sigG] = fit_gainSDN(speeds,VeM,VeVAR,w0,sigG0,OPTIONS)
 function v = gainSDN(ve,vs,w,sigG)
     %%
     v = w.^2.*ve.^2 + (sigG.^2 + sigG.^2.*w.^2).*vs.^2;
+    
+%% gainFunction
+function out = gainFunction(n,tuning,gainNoise)
+    %%
+    for thetai = 1:size(n,1)
+        for speedi = 1:size(n,2)
+            out(thetai,speedi,:) = log2(tuning.speed.pref)' ...
+                * permute(n(thetai,speedi,:,:),[4,3,1,2]) + ...
+                gainNoise*randn(size(n,3),1)';
+
+            % SDN
+            %         out(thetai,speedi,:) = log2(tuning.speed.pref)' ...
+            %             * permute(n(thetai,speedi,:,:),[4,3,1,2]);
+            %         out(thetai,speedi,:) = out(thetai,speedi,:) + ...
+            %             out(thetai,speedi,:)*gainNoise.*randn(1,1,size(n,3));
+        end
+    end
