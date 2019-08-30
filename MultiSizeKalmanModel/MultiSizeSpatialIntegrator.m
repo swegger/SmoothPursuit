@@ -1,4 +1,4 @@
-function zstar = MultiSizeSpatialIntegrator(N,varargin)
+function [zstar, wT, zhat] = MultiSizeSpatialIntegrator(N,varargin)
 %%
 %
 %
@@ -18,6 +18,8 @@ addParameter(Parser,'Wx',NaN)
 addParameter(Parser,'zhat0',NaN)
 addParameter(Parser,'wT0',NaN)
 addParameter(Parser,'Wt',NaN)
+addParameter(Parser,'t0',20)
+addParameter(Parser,'Nmax',600)
 
 parse(Parser,N,varargin{:})
 
@@ -29,6 +31,8 @@ Wx = Parser.Results.Wx;
 zhat0 = Parser.Results.zhat0;
 wT0 = Parser.Results.wT0;
 Wt = Parser.Results.Wt;
+t0 = Parser.Results.t0;
+Nmax = Parser.Results.Nmax;
 
 if any(isnan(H))
     H = ones(N,1);
@@ -43,17 +47,20 @@ if any(isnan(zhat0))
 end
 
 if any(isnan(wT0))
-    wT0 = 1e6*ones(N,1);
+    wT0 = 0.1*ones(N,1);
 end
 
 if any(isnan(Wt))
-    Wt = 0.5*ones(N,1);
+    Wt = 0*ones(N,1);
 end
 
 %% Perform simulations
 
 for triali = 1:trials
     x = MultiSizeSensorModel(z,H,Wx);
-    zhat(:,:,triali) = MultiSizeTemporalIntegratorModel(x,zhat0,wT0,Wx,Wt);
+    [zhat(:,:,triali), wT(:,:,triali)] = MultiSizeTemporalIntegratorModel(...
+        x,zhat0,wT0,Wx,Wt,'t0',t0);
 end
+% zstar = N/Nmax * mean(zhat,1);
 zstar = mean(zhat,1);
+wT = mean(wT,1);
