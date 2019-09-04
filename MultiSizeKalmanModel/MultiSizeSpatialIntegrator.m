@@ -1,4 +1,4 @@
-function [zstar, wT, zhat] = MultiSizeSpatialIntegrator(N,varargin)
+function [zstar, wT, zhat, K] = MultiSizeSpatialIntegrator(N,varargin)
 %%
 %
 %
@@ -20,6 +20,7 @@ addParameter(Parser,'wT0',NaN)
 addParameter(Parser,'Wt',NaN)
 addParameter(Parser,'t0',20)
 addParameter(Parser,'Nmax',600)
+addParameter(Parser,'gainNoise',0)
 
 parse(Parser,N,varargin{:})
 
@@ -33,6 +34,7 @@ wT0 = Parser.Results.wT0;
 Wt = Parser.Results.Wt;
 t0 = Parser.Results.t0;
 Nmax = Parser.Results.Nmax;
+gainNoise = Parser.Results.gainNoise;
 
 if any(isnan(H))
     H = ones(N,1);
@@ -58,9 +60,13 @@ end
 
 for triali = 1:trials
     x = MultiSizeSensorModel(z,H,Wx);
-    [zhat(:,:,triali), wT(:,:,triali)] = MultiSizeTemporalIntegratorModel(...
+    [zhat(:,:,triali), wT(:,:,triali), Ktemp] = ...
+        MultiSizeTemporalIntegratorModel(...
         x,zhat0,wT0,Wx,Wt,'t0',t0);
+    K(:,triali) = Ktemp(1,1,:);
+    
+    gain = sqrt(N)/sqrt(Nmax) + gainNoise*randn;
+    zstar(:,:,triali) = gain*sum( ((1./wT(:,:,triali))./repmat(sum(1./wT(:,:,triali),1),[size(zhat,1),1,1])) .* zhat(:,:,triali),1);  % Mean, accounting for potential differences in reliabilities across temporal integrator units
 end
-% zstar = N/Nmax * mean(zhat,1);
-zstar = mean(zhat,1);
+% zstar = mean(zhat,1); % Stupid mean
 wT = mean(wT,1);

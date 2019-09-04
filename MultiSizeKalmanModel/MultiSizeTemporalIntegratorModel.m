@@ -1,4 +1,4 @@
-function [zhat, wT] = MultiSizeTemporalIntegratorModel(x,zhat0,wT0,Wx,Wt,varargin)
+function [zhat, wT, K] = MultiSizeTemporalIntegratorModel(x,zhat0,wT0,Wx,Wt,varargin)
 %%
 %
 %
@@ -38,15 +38,15 @@ wT(:,1) = wT0;
 
 % Compute wT
 wX = Wx;
-% wX = 1/sum(1./Wx);      % Inverse of summed reliabilities
+% wX = 1/sum(1./Wx);      % Inverse of summed reliabilities (this is a bad idea because it will integrate noise)
 for ti = 2:size(x,2)+t0
     wT(:,ti) = sqrt(((wT(:,ti-1).^2+Wt.^2).*wX.^2)./((wT(:,ti-1).^2+Wt.^2) + wX.^2));
+    K(:,:,ti) = diag( wT(:,ti).^2 ./ (wT(:,ti).^2 + wX.^2) );
 end
-wT = wT(:,t0:end);
+wT = wT(:,t0+1:end);
+K = K(:,:,t0+1:end);
 
 % Estimate over time
 for ti = 2:size(x,2)
-%     wT(:,ti) = ((wT(:,ti-1).^2+Wt.^2).*Wx.^2)./((wT(:,ti-1).^2+Wt.^2) + Wx.^2);
-    K(:,:,ti) = diag( wT(:,ti).^2 ./ (wT(:,ti).^2 + wX.^2) );
     zhat(:,ti) = zhat(:,ti-1) + K(:,:,ti)*(x(:,ti) - zhat(:,ti-1));
 end
