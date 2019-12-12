@@ -1,4 +1,4 @@
-function [n, M, rNN, e, tuning] = dynamicalCohModel_v1(varargin)
+function [nFEF, nMT, tuning] = dynamicalCohModel_v1(varargin)
 %% dynamicalCohModel_v1
 %
 %
@@ -86,23 +86,37 @@ for ti = 1:length(Coherence)
 end
 
 %% Model FEF response
-alpha = 0.3;
+alpha = 0.2;
+a = 0.1;
+b = 0.01;
+c = 1;
+tau = 1/alpha;
 for ti = 1:length(Coherence)
     if ti == 1
-        z(ti,:) = 1./(tuning.speed.pref' * permute(nMT(:,:,:,:,ti),[4,3,1,2]));
+        z(ti,:) = zeros(400,1);%1./(tuning.speed.pref' * permute(nMT(:,:,:,:,ti),[4,3,1,2]));
+        nFEF(ti,:) = (tuning.speed.pref' * permute(nMT(:,:,:,:,ti),[4,3,1,2]));
+        
+        dFEF(ti,:) = deltaFEF(nFEF(ti,:),nMT(:,:,:,:,ti),z(ti,:),a,b,tuning);
+        dz(ti,:) = deltaZ(nMT(:,:,:,:,ti),z(ti,:),c,tuning);
     else
-        z(ti,:) = (1-alpha)*z(ti-1,:) + alpha*...
-            (1./(tuning.speed.pref' * permute(nMT(:,:,:,:,ti),[4,3,1,2])) + 1./z(ti-1,:)) ./ ...
-            (1./(tuning.speed.pref' * permute(nMT(:,:,:,:,ti),[4,3,1,2])).*(1./z(ti-1,:)));
+%         z(ti,:) = (1-alpha)*z(ti-1,:) + alpha*...
+%             (1./(tuning.speed.pref' * permute(nMT(:,:,:,:,ti),[4,3,1,2])) + 1./z(ti-1,:)) ./ ...
+%             (1./(tuning.speed.pref' * permute(nMT(:,:,:,:,ti),[4,3,1,2])).*(1./z(ti-1,:)));
+
+        nFEF(ti,:) = nFEF(ti-1,:) + dFEF(ti-1,:)/tau;
+        z(ti,:) = z(ti-1,:) + dz(ti-1,:)/tau;
+        
+        dFEF(ti,:) = deltaFEF(nFEF(ti,:),nMT(:,:,:,:,ti),z(ti,:),a,b,tuning);
+        dz(ti,:) = deltaZ(nMT(:,:,:,:,ti),z(ti,:),c,tuning);
     end
-    nFEF(ti,:) = mean((tuning.speed.pref' * permute(nMT(:,:,:,:,ti),[4,3,1,2])) ./ ...
-        (epsilon + sum(permute(nMT(:,:,:,:,ti),[4,3,1,2]),1)),2);
+%     nFEF(ti,:) = mean((tuning.speed.pref' * permute(nMT(:,:,:,:,ti),[4,3,1,2])) ./ ...
+%         (epsilon + sum(permute(nMT(:,:,:,:,ti),[4,3,1,2]),1)),2);
     
-    if ti == 1
-        nFEF2(ti,:) = nFEF(ti,:);
-    else
-        nFEF2(ti,:) = (1-alpha)*nFEF2(ti-1,:) + alpha*nFEF(ti,:);
-    end
+%     if ti == 1
+%         nFEF2(ti,:) = nFEF(ti,:);
+%     else
+%         nFEF2(ti,:) = (1-alpha)*nFEF2(ti-1,:) + alpha*nFEF(ti,:);
+%     end
 %     nFEF2(ti,:) = mean((tuning.speed.pref' * permute(nMT(:,:,:,:,ti),[4,3,1,2])) ./ ...
 %         (z(ti,:)/1e5 + (tuning.speed.pref' * permute(nMT(:,:,:,:,ti),[4,3,1,2]))),2);
 end
@@ -126,7 +140,8 @@ xlabel('time')
 ylabel('numerator and denominator')
 
 subplot(2,2,[2 4])
-plotyy(1:length(Coherence),nFEF,1:length(Coherence),nFEF2)
+plot(10:length(Coherence),mean(nFEF(10:end,:),2))
+% plotyy(1:length(Coherence),nFEF,1:length(Coherence),nFEF2)
 xlabel('time')
 
 
@@ -151,4 +166,21 @@ function tuning = tuningFunctions(N,theta,speed,Cov,n0)
     tuning.n0 = n0;
     
     tuning.Cov = Cov;
+
+%% Dynamical systems
+% dFEF
+function out = deltaFEF(nFEF,nMT,z,a,b,tuning)
+    out = -nFEF +...
+        a*( (tuning.speed.pref' * permute(nMT(:,:,:,:),[4,3,1,2])) ) - ...
+        b*( (z + (tuning.speed.pref' * permute(nMT(:,:,:,:),[4,3,1,2])) ) );
     
+% dz
+function out = deltaZ(nMT,z,c,tuning)
+    out = -z + c*( (tuning.speed.pref' * permute(nMT(:,:,:,:),[4,3,1,2])) );
+    
+    
+% dFEF2
+function out = deltaFEF2(nFEF,nMT,z,a,b,tuning)
+    out = -nFEF +...
+        a*( (tuning.speed.pref' * permute(nMT(:,:,:,:),[4,3,1,2])) ) - ...
+        b*( (z + (tuning.speed.pref' * permute(nMT(:,:,:,:),[4,3,1,2])) ) );
