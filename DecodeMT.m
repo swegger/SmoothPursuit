@@ -20,6 +20,7 @@ addParameter(Parser,'b',[0, 0])
 addParameter(Parser,'gainSDN',false)
 addParameter(Parser,'pool',NaN)
 addParameter(Parser,'plotflg',true)
+addParameter(Parser,'mymakeaxisflg',false)
 
 parse(Parser,n,tuning,s,varargin{:})
 
@@ -33,6 +34,7 @@ b = Parser.Results.b;
 gainSDN = Parser.Results.gainSDN;
 pool = Parser.Results.pool;
 plotflg = Parser.Results.plotflg;
+mymakeaxisflg = Parser.Results.mymakeaxisflg;
 
 if any(isnan(pool))
     pool = true(size(n,4),1);
@@ -104,8 +106,8 @@ for thetai = 1:size(s,1)
 end
 
 % Sort by % preferred speed
-speedPercent = 100*repmat(s(:,:,2),[1,1,size(Rs,3),size(Rs,4)]) ./ ...
-    repmat(permute(tuning.speed.pref,[3,2,1]),[size(s,1),size(s,2),1,2]);
+speedPercent = 100*repmat(permute(tuning.speed.pref,[3,2,1]),[size(s,1),size(s,2),1,2]) ./ ...
+    repmat(s(:,:,2),[1,1,size(Rs,3),size(Rs,4)]);
 
 dirDiff = repmat(s(:,:,1),[1,1,size(Rs,3),size(Rs,4)]) - ...
     repmat(permute(tuning.theta.pref,[3,2,1]),[size(s,1),size(s,2),1,2]);
@@ -136,6 +138,9 @@ if plotflg
     plotUnity;
     xlabel('Stimulus speed')
     ylabel('Speed estimate')
+    if mymakeaxisflg
+        mymakeaxis(gca)
+    end
     
     subplot(1,3,3)
     for triali = 1:size(e,3)
@@ -151,6 +156,10 @@ if plotflg
     plotUnity;
     xlabel('Stimulus direction')
     ylabel('Direction estimate')
+    if mymakeaxisflg
+        mymakeaxis(gca)
+    end
+    
     %%
     figure('Name','Neuron-estimate correlations')
     dispSps = 1:size(Rs,2);
@@ -176,6 +185,10 @@ if plotflg
         else
             ylabel('Neuron-eye speed correlation')
         end
+        if mymakeaxisflg
+            mymakeaxis(gca)
+        end
+        
     end
     for i = 1:2   
         subplot(2,2,i+2)
@@ -196,6 +209,9 @@ if plotflg
             ylabel('Neuron-eye direction correlation')
         else
             ylabel('Neuron-eye speed correlation')
+        end
+        if mymakeaxisflg
+            mymakeaxis(gca)
         end
     end
 end

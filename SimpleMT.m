@@ -15,6 +15,7 @@ addRequired(Parser,'speeds')
 addParameter(Parser,'trialN',1)
 addParameter(Parser,'tuning',tuning_default)
 addParameter(Parser,'plotflg',true)
+addParameter(Parser,'mymakeaxisflg',true)
 
 parse(Parser,thetas,speeds,varargin{:})
 
@@ -23,6 +24,7 @@ speeds = Parser.Results.speeds;
 trialN = Parser.Results.trialN;
 tuning = Parser.Results.tuning;
 plotflg = Parser.Results.plotflg;
+mymakeaxisflg = Parser.Results.mymakeaxisflg;
 
 %% Generate noisy bump for each trial
 % Preallocate
@@ -79,7 +81,9 @@ if plotflg
     xlabel('Neuron i')
     ylabel('Neuron j')
     colorbar
-    mymakeaxis(gca)
+    if mymakeaxisflg
+        mymakeaxis(gca)
+    end
     
     subplot(2,2,2)
     [S1,S2] = meshgrid(tuning.speed.pref);
@@ -94,7 +98,9 @@ if plotflg
     plotHorizontal(0);
     xlabel('\Delta Speed perference')
     ylabel('Noise Correlation')
-    mymakeaxis(gca)
+    if mymakeaxisflg
+        mymakeaxis(gca)
+    end
     
     subplot(2,2,4)
     [D1,D2] = meshgrid(tuning.theta.pref);
@@ -110,7 +116,9 @@ if plotflg
     plotHorizontal(0.2);
     xlabel('\Delta Direction perference')
     ylabel('Noise Correlation')
-    mymakeaxis(gca)
+    if mymakeaxisflg
+        mymakeaxis(gca)
+    end
 end
 
 %% Functions

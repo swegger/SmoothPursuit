@@ -1,4 +1,4 @@
-function [n, M, rNN, e] = NeuralModel_v1(varargin)
+function [n, M, rNN, e, tuning] = NeuralModel_v1(varargin)
 %% NeuralModel_v1
 %
 %
@@ -35,6 +35,7 @@ addParameter(Parser,'Cov',Cov_default)
 addParameter(Parser,'n0',1)
 addParameter(Parser,'epsilon',0.05)
 addParameter(Parser,'gainNoise',0)
+addParameter(Parser,'mymakeaxisflg',true)
 
 parse(Parser,varargin{:})
 
@@ -47,6 +48,7 @@ Cov = Parser.Results.Cov;
 n0 = Parser.Results.n0;
 epsilon = Parser.Results.epsilon;
 gainNoise = Parser.Results.gainNoise;
+mymakeaxisflg = Parser.Results.mymakeaxisflg;
 
 %% Generate population sizes
 % fun=@(x1) (1.14*x1.^-0.76); % Albright & Desimone 87 Exp Brain Res (mm/deg)
@@ -77,8 +79,8 @@ for szi = 1:length(N)
     
     % Simulate MT and then decode
     
-    [n, M, rNN, ~, tuning] = SimpleMT(thetas,speeds,'trialN',400,'tuning',tuning,'plotflg',false);
-    e{szi} = DecodeMT(n,tuning,s,'gainNoise',gainNoise,'epsilon',epsilon,'b',normalizer);%,'plotflg',false);
+    [n, M, rNN, ~, tuning] = SimpleMT(thetas,speeds,'trialN',400,'tuning',tuning,'plotflg',false,'mymakeaxisflg',mymakeaxisflg);
+    e{szi} = DecodeMT(n,tuning,s,'gainNoise',gainNoise,'epsilon',epsilon,'b',normalizer,'mymakeaxisflg',mymakeaxisflg);%,'plotflg',false);
     
     eBar = mean(e{szi},3);
     eVar = var(e{szi},1,3);
@@ -116,7 +118,9 @@ for szi = 1:length(N)
     axis square
     xlabel('Target speed (deg/s)')
     ylabel('Eye speed (deg/s)')
-    mymakeaxis(gca);
+    if mymakeaxisflg
+        mymakeaxis(gca);
+    end
 end
 
 figure;
@@ -135,12 +139,15 @@ colors = projectColorMaps('speeds','samples',1:length(speeds),...
 for di = 1:length(thetas)
     subplot(1,length(thetas),di)
     for szi = 1:length(N)
+        plot(permute(VeM(di,:,szi),[2,3,1]),permute(VeVAR(di,:,szi),[2,3,1]),...
+            'o','Color',Ncolors(szi,:),'MarkerFaceColor',Ncolors(szi,:),'MarkerSize',10)
+        hold on
         for si = 1:length(speeds)
             %         for si = 1:length(speeds)
-            plot(VeM(di,si,szi),VeVAR(di,si,szi),'s','Color',colors(si,:),...
-                'MarkerFaceColor',Ncolors(szi,:),'MarkerSize',10)
-            hold on
-%             plot(VeM(di,si,szi),gainSDN(VeM(di,si,szi),speeds(si),w,sigG),'o',...
+%             plot(VeM(di,si,szi),VeVAR(di,si,szi),'o','Color',colors(si,:),...
+%                 'MarkerFaceColor',Ncolors(szi,:),'MarkerSize',10)
+%             hold on
+%             plot(VeM(di,si,szi),gainSDN(VeM(di,si,szi),speeds(si),w,sigG),'s',...
 %                 'Color',colors(si,:),'MarkerFaceColor',Ncolors(szi,:),'MarkerSize',10)
             %         end
         end
@@ -149,7 +156,9 @@ for di = 1:length(thetas)
         xlabel('Mean eye speed (deg/s)')
         ylabel('Eye speed variance (deg/s)^2')
     end
-    mymakeaxis(gca);
+    if mymakeaxisflg
+        mymakeaxis(gca);
+    end
 end
 
 %% Functions
