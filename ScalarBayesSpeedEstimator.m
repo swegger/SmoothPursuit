@@ -1,4 +1,4 @@
-function [e, likelihood] = ScalarBayesSpeedEstimator(m,wm,sigm,xmin,xmax,varargin)
+        function [e, likelihood] = ScalarBayesSpeedEstimator(m,wm,sigm,xmin,xmax,varargin)
 %% ScalarBayesEstimators
 %
 %   e = ScalarBayesSpeedEstimator(m,wm,sigm,xmin,xmax)
