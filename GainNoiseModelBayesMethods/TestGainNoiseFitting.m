@@ -1,4 +1,5 @@
-function TestGainNoiseFitting(varargin)
+function [ws, gains, sigma, wp, ws_fit, sigma_fit, G_fit, wp_fit] = ...
+    TestGainNoiseFitting(varargin)
 %% TestGainNoiseFitting
 %
 %   TestGainNoiseFitting()
@@ -55,6 +56,15 @@ switch modelparams.variant
         
     case 'full'
         [s, m, c] = SimulateGainNoiseModel(ws,gains,sigma,wp,'trials',trialN);
+        g = gains(c)';
+        
+    case 'BLS'
+        method = modelparams.method;
+        smin = modelparams.smin;
+        smax = modelparams.smax;
+        b = modelparams.b;
+        f = @(s,ws,trials)(ScalarBayesEstimators(s+ws*s.*randn(trials,1),ws,smin,smax,'method',method) + b);
+        [s, m, c] = SimulateGainNoiseModel(ws,gains,sigma,0,'trials',trialN,'f',f);
         g = gains(c)';
         
     otherwise
@@ -156,12 +166,14 @@ switch fitparams.variant
                 'lb',fitparams.lb,...
                 'ub',fitparams.ub);
             G_fit = w0_fit^2./(w0_fit^2 + ws_fit.^2);
+            sigma_fit = NaN;
         else
             [ws_fit, w0_fit, wp_fit, ll] = FlexWsConG_fitter(sfit',mfit',cfit',...
                 'params0',[0.05,0.15,0.1*ones(1,length(gains))],...
                 'lb',[0.03,0.03,0.03*ones(1,length(gains))],...
                 'ub',inf(1,2+length(gains)));
             G_fit = w0_fit^2./(w0_fit^2 + ws_fit.^2);
+            sigma_fit = NaN;
         end
         
         % Evaluate likelihood as a function of parameter space
@@ -183,19 +195,60 @@ switch fitparams.variant
                 error(['Likelihood evaluation parameter ' testparameter ' not recognized!'])
         end
         
+    case 'BLS'
+        if isfield(fitparams,'params0')
+            [ws_fit, sigma_fit, G_fit, b_fit, ll] = BLS_G_fitter(sfit',mfit',cfit',...
+                'params0',fitparams.params0,...
+                'lb',fitparams.lb,...
+                'ub',fitparams.ub,...
+                'smin',fitparams.smin,'smax',fitparams.smax);
+            
+            wp_fit = NaN;
+        else
+            [ws_fit, sigma_fit, G_fit, b_fit, ll] = BLS_G_fitter(sfit',mfit',cfit',...
+                'params0',[0.1,0.05,0,ones(1,length(gains))],...
+                'lb',[0.03,0.03,-Inf,zeros(1,length(gains))],...
+                'ub',inf(1,3+length(gains)),...
+                'smin',fitparams.smin,'smax',fitparams.smax);
+            
+            wp_fit = NaN;
+        end
+        
+        
     otherwise
         error(['Fit model variant ' fitparams.variant ' not recognized!'])
 end
 
 %% Plotting
-figure
+figure('Name','Behavior and fit','Position',[547 396 1640 666])
 subplot(1,2,1)
 for ci = 1:length(gains)
     plot(s(c==ci),m(c==ci),'o')
     hold on
 end
+switch fitparams.variant
+    case 'simple'
+        plot([min(s),max(s)],G_fit'.*repmat([min(s),max(s)],length(gains),1),'k')
+        
+    case 'BLS'
+        method.type = 'quad';
+        method.dx = fitparams.dx;
+        svec = linspace(min(s)-ws_fit*min(s),max(s)+ws_fit*max(s),100);
+        f = @(s,ws,trials)(...
+            ScalarBayesEstimators(s+ws_fit*s.*randn(trials,1),ws_fit,fitparams.smin,fitparams.smax,'method',method)...
+            + b_fit);
+        [stemp, mtemp, ctemp] = SimulateGainNoiseModel(ws,G_fit,sigma,0,'trials',1000000,'f',f,...
+            'svalues',svec);
+        for ci = 1:length(gains)
+            for si = 1:length(svec)
+                mbar(si,ci) = mean(mtemp(ctemp == ci & stemp == svec(si)));
+            end
+            plot(svec,mbar(:,ci),'k')
+        end
+        
+end
+axis square
 plotUnity;
-plot([min(s),max(s)],G_fit'.*repmat([min(s),max(s)],length(gains),1),'k')
 
 xlabel('s')
 ylabel('m')

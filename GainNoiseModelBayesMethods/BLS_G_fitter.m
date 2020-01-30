@@ -31,6 +31,9 @@ addParameter(Parser,'params0',[0.1,0.1,0,1])
 addParameter(Parser,'lb',[0, 0, -Inf, 0])
 addParameter(Parser,'ub',[Inf, Inf, Inf, Inf])
 addParameter(Parser,'options',options_default)
+addParameter(Parser,'smin',0.1)
+addParameter(Parser,'smax',20)
+addParameter(Parser,'dx',1)
 
 parse(Parser,s,m,c,varargin{:})
 
@@ -43,11 +46,14 @@ params0 = Parser.Results.params0;
 lb = Parser.Results.lb;
 ub = Parser.Results.ub;
 options = Parser.Results.options;
+smin = Parser.Results.smin;
+smax = Parser.Results.smax;
+dx = Parser.Results.dx;
 
 
 %% Fit the data
 
-[params, ll, EXITFLAG,OUTPUT] = fmincon(@(p)(minimizer(p,s,m,c,sm,Gprime)),...
+[params, ll, EXITFLAG,OUTPUT] = fmincon(@(p)(minimizer(p,s,m,c,sm,Gprime,smin,smax,dx)),...
     params0,[],[],[],[],lb,ub,[],options);
 
 ws = params(1);
@@ -57,8 +63,8 @@ G = params(4:end);
 
 %% Functions
 
-function out = minimizer(p,s,m,c,sm,Gprime)
+function out = minimizer(p,s,m,c,sm,Gprime,smin,smax,dx)
     gains = p(4:end);
     g = gains(c);
     out = -LogLikelihood_data_take_BLS_G(s,m,g,p(1),p(2),p(3),...
-        'sm',sm,'Gprime',Gprime);
+        'sm',sm,'Gprime',Gprime,'smin',smin,'smax',smax,'dx',dx);
