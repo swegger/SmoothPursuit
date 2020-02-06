@@ -8,7 +8,7 @@ function [ws, gains, sigma, wp, ws_fit, sigma_fit, G_fit, wp_fit] = ...
 
 %% Defaults
 modelparams_default.variant = 'simple';
-fitparams_default.variant = 'simple';
+fitparams_default.variant = 'none';
 
 %% Parse inputs
 Parser = inputParser;
@@ -215,6 +215,14 @@ switch fitparams.variant
         end
         
         
+    case 'none'
+        ws_fit = ws;
+        wp_fit = wp;
+        sigma_fit = sigma;
+        G_fit = gains;
+        b_fit = b;
+        fitparams.variant = modelparams.variant;
+        
     otherwise
         error(['Fit model variant ' fitparams.variant ' not recognized!'])
 end
@@ -232,7 +240,15 @@ switch fitparams.variant
         
     case 'BLS'
         method.type = 'quad';
-        method.dx = fitparams.dx;
+        if isfield(fitparams,'dx')
+            method.dx = fitparams.dx;
+        else
+            method.dx = 0.1;
+        end
+        if ~isfield(fitparams,'smin')
+            fitparams.smin = 0.1;
+            fitparams.smax = max(s);
+        end
         svec = linspace(min(s)-ws_fit*min(s),max(s)+ws_fit*max(s),100);
         f = @(s,ws,trials)(...
             ScalarBayesEstimators(s+ws_fit*s.*randn(trials,1),ws_fit,fitparams.smin,fitparams.smax,'method',method)...
