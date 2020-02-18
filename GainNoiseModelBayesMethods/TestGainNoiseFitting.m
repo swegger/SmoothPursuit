@@ -228,10 +228,16 @@ switch fitparams.variant
 end
 
 %% Plotting
+
+ccolors = [0.8 0.8 0.8;...
+    0.5 0.5 0.5;...
+    0   0   0];
+
 figure('Name','Behavior and fit','Position',[547 396 1640 666])
 subplot(1,2,1)
 for ci = 1:length(gains)
-    plot(s(c==ci),m(c==ci),'o')
+    h(ci) = scatter(s(c==ci),m(c==ci),30,ccolors(ci,:),'filled');
+%     set(h(ci),'MarkerEdgeAlpha',0.2,'MarkerFaceAlpha',0.2)
     hold on
 end
 switch fitparams.variant
@@ -275,20 +281,38 @@ for ci = 1:length(gains)
     switch fitparams.variant
         case 'full'
             
-        case 'simple'
-            ss = linspace(min(s),max(s),1000);
-            plot(G_fit(ci)*ss,gainSDN(G_fit(ci)*ss,ss,ws_fit,sigma_fit),'k-')
+        case {'simple','BLS'}
+            ss = linspace(0,max(s),1000);
+            plot(G_fit(ci)*ss,gainSDN(G_fit(ci)*ss,ss,ws_fit,sigma_fit),'-',...
+                'Color',ccolors(ci,:))
         case 'flexible_ws_constrained_g'
-            ss = linspace(min(s),max(s),1000);
-            plot(G_fit(ci)*ss,(ws_fit(ci).^2+wp_fit(ci).^2)*G_fit(ci).^2*ss.^2,'k-')            
+            ss = linspace(0,max(s),1000);
+            plot(G_fit(ci)*ss,(ws_fit(ci).^2+wp_fit(ci).^2)*G_fit(ci).^2*ss.^2,'-',...
+                'Color',ccolors(ci,:))      
     end
     hold on
 end
-plot(mean_m,std_m.^2,'o')
+for ci = 1:length(gains)
+    plot(mean_m(:,ci),std_m(:,ci).^2,'o-','Color',ccolors(ci,:),'MarkerFaceColor',ccolors(ci,:))
+end
 
 xlabel('$\langle m \rangle$')
 ylabel('$\langle (m - \langle m\rangle)^2 \rangle$')
 mymakeaxis(gca,'interpreter','latex')
+
+switch modelparams.variant
+    case 'BLS'
+        figure('Name','f')
+        sm = linspace(min(s)-ws*min(s),max(s)+ws*max(s),1000);
+        f2 = @(sm,ws,trials)(ScalarBayesEstimators(sm,ws,smin,smax,'method',method) + b);
+        plot(sm(:),f2(sm(:),ws,1),'k')
+        hold on
+        plotUnity;
+        xlabel('$s+\eta_s$')
+        ylabel('$f(s+\eta_s)$')
+        axis square
+        mymakeaxis(gca,'interpreter','latex')
+end
 
 %% Functions
 %% gainSDN
