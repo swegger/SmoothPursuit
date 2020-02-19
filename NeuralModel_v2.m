@@ -86,7 +86,7 @@ end
 s = cat(3,Ds',Ss');
 
 for szi = 1:length(sizes)
-    e{szi} = DecodeMT(n{szi},tuning,s,'gainNoise',gainNoise,'epsilon',epsilon,'b',normalizer,'mymakeaxisflg',mymakeaxisflg);%,'plotflg',false);
+    [e{szi}, gain{szi}] = DecodeMT(n{szi},tuning,s,'gainNoise',gainNoise,'epsilon',epsilon,'b',normalizer,'mymakeaxisflg',mymakeaxisflg);%,'plotflg',false);
     
     eBar = mean(e{szi},3);
     eVar = var(e{szi},1,3);
@@ -269,6 +269,20 @@ ylabel('Pref direction')
 % xlabel('Neuron i')
 % ylabel('Neuron j')
 % colorbar
+
+%% Gain
+h = figure('Name','Gain vs speed','Position',[26 366 621 387]);
+for szi = 1:length(sizes)
+    plot(speeds,squeeze(gain{szi}(1,:,randsample(size(gain{szi},3),100))),'o',...
+        'Color',szcolors(szi,:),'MarkerFaceColor',szcolors(szi,:))
+    hold on
+end
+axis square
+xlabel('Target speed (deg/s)')
+ylabel('Gain')
+if mymakeaxisflg
+    mymakeaxis(gca,'xticks',[0,10,20]);
+end
 
 %% Functions
 

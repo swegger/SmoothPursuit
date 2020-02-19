@@ -1,4 +1,4 @@
-function e = DecodeMT(n,tuning,s,varargin)
+function [e,gain] = DecodeMT(n,tuning,s,varargin)
 %% DecodeMT
 %
 %
