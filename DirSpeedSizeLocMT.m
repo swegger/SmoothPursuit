@@ -75,7 +75,7 @@ end
 %% Plotting
 if plotflg
     figure('Name','Noise correlations','Position',[150 157 1089 641])
-    h = subplot(2,2,[1 3]);
+    h = subplot(3,2,[1 3 5]);
     imagesc(1:length(tuning.theta.pref),1:length(tuning.theta.pref),rNN - diag(diag(rNN)))
     colormap gray
     axis square
@@ -87,31 +87,37 @@ if plotflg
         mymakeaxis(gca)
     end
     
-    subplot(2,2,2)
+    subplot(3,2,2)
     [S1,S2] = meshgrid(tuning.speed.pref);
     dS = S1-S2;
     mask = logical(tril(ones(size(rNN)),-1));
-    hS = scatter(abs(dS(mask)),rNN(mask),20,'k');
+    alldS = abs(dS(mask));
+    allrNN = rNN(mask);
+    exInds = randsample(length(alldS),200);
+    hS = scatter(alldS(exInds),allrNN(exInds),20,'k');
     hS.MarkerFaceColor = [0 0 0];
-    hS.MarkerFaceAlpha = 0.01;
-    hS.MarkerEdgeAlpha = 0.01;
+%     hS.MarkerFaceAlpha = 0.01;
+%     hS.MarkerEdgeAlpha = 0.01;
     hold on
     axis([0 150 -0.25 1])
     plotHorizontal(0);
     xlabel('\Delta Speed perference')
     ylabel('Noise Correlation')
     if mymakeaxisflg
-        mymakeaxis(gca)
+        mymakeaxis(gca,'yticks',[-0.25,0,0.25,0.5,0.75,1])
     end
     
-    subplot(2,2,4)
+    subplot(3,2,4)
     [D1,D2] = meshgrid(tuning.theta.pref);
     dD = D1-D2;
     mask = logical(tril(ones(size(rNN)),-1));
-    hS = scatter(abs(dD(mask)),rNN(mask),20,'k');
+    alldD = abs(dD(mask));
+    allrNN = rNN(mask);
+    exInds = randsample(length(alldD),200);
+    hS = scatter(alldD(exInds),allrNN(exInds),20,'k');
     hS.MarkerFaceColor = [0 0 0];
-    hS.MarkerFaceAlpha = 0.01;
-    hS.MarkerEdgeAlpha = 0.01;
+%     hS.MarkerFaceAlpha = 0.01;
+%     hS.MarkerEdgeAlpha = 0.01;
     hold on
     axis([0 180 -0.25 1])
     plotHorizontal(0);
@@ -119,7 +125,29 @@ if plotflg
     xlabel('\Delta Direction perference')
     ylabel('Noise Correlation')
     if mymakeaxisflg
-        mymakeaxis(gca)
+        mymakeaxis(gca,'yticks',[-0.25,0,0.25,0.5,0.75,1])
+    end
+    
+    subplot(3,2,6)
+    [X1,X2] = meshgrid(tuning.size.x);
+    [Y1,Y2] = meshgrid(tuning.size.y);
+    dX = sqrt((X1-X2).^2 + (Y1-Y2).^2);
+    mask = logical(tril(ones(size(rNN)),-1));
+    alldX = abs(dX(mask));
+    allrNN = rNN(mask);
+    exInds = randsample(length(alldX),200);
+    hS = scatter(alldX(exInds),allrNN(exInds),20,'k');
+    hS.MarkerFaceColor = [0 0 0];
+%     hS.MarkerFaceAlpha = 0.01;
+%     hS.MarkerEdgeAlpha = 0.01;
+    hold on
+    axis([0 60 -0.25 1])
+    plotHorizontal(0);
+    plotHorizontal(0.2);
+    xlabel('\Delta Position')
+    ylabel('Noise Correlation')
+    if mymakeaxisflg
+        mymakeaxis(gca,'yticks',[-0.25,0,0.25,0.5,0.75,1])
     end
 end
 

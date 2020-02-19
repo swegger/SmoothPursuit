@@ -75,7 +75,7 @@ normalizer = [mean(gainTemp(:))/mean(log2(speeds)), 0]; % For -90 90 theta range
 %% Run MT simulations
 for szi = 1:length(sizes)
     
-    [n{szi}, M{szi}, rNN{szi}, ~, ~] = DirSpeedSizeLocMT(thetas,speeds,sizes(szi),'trialN',400,'tuning',tuning,'plotflg',false,'mymakeaxisflg',mymakeaxisflg);
+    [n{szi}, M{szi}, rNN{szi}, ~, ~] = DirSpeedSizeLocMT(thetas,speeds,sizes(szi),'trialN',400,'tuning',tuning,'plotflg',true,'mymakeaxisflg',mymakeaxisflg);
     
 end
 
@@ -113,28 +113,30 @@ for szi = 1:length(sizes)
 end
 
 %% Plotting
-h = figure('Name','Target v Eye speed','Position',[664 822 1530 387]);
+
+    szcolors = [0.8 0.8 0.8;...
+                0.5 0.5 0.5;...
+                  0   0   0];
+              
+h = figure('Name','Target v Eye speed','Position',[26 366 621 387]);
 for szi = 1:length(sizes)
-    subplot(1,length(sizes),szi)
-    plot(speeds,squeeze(e{szi}(1,:,:,2)),'ko')
+    plot(speeds,squeeze(e{szi}(1,:,randsample(size(e{szi},3),100),2)),'o',...
+        'Color',szcolors(szi,:),'MarkerFaceColor',szcolors(szi,:))
     hold on
-    plotUnity;
     xs = linspace(min(speeds),max(speeds),100);
     plot(xs,betas(1,szi)*xs+betas(2,szi),'r-')
-    axis square
-    xlabel('Target speed (deg/s)')
-    ylabel('Eye speed (deg/s)')
-    if mymakeaxisflg
-        mymakeaxis(gca);
-    end
+end
+axis square
+xlabel('Target speed (deg/s)')
+ylabel('Eye speed (deg/s)')
+plotUnity;
+if mymakeaxisflg
+    mymakeaxis(gca,'xticks',[0,10,20],'yticks',[0 10 20]);
 end
 
 figure;
 Ncolors = colormap('lines');
 
-    szcolors = [0.8 0.8 0.8;...
-                0.5 0.5 0.5;...
-                  0   0   0];
               
 Ncolors = [szcolors; Ncolors];
 
@@ -162,6 +164,9 @@ for di = 1:length(thetas)
         xlabel('Mean eye speed (deg/s)')
         ylabel('Eye speed variance (deg/s)^2')
     end
+    
+%     ylim([0 6])
+    axis square
     if mymakeaxisflg
         mymakeaxis(gca);
     end
@@ -180,9 +185,9 @@ axis square
 ind1 = find(sqrt(tuning.size.x.^2+tuning.size.y.^2) > 9 & sqrt(tuning.size.x.^2+tuning.size.y.^2) < 15,1);
 [x,y] = ellipse(tuning.size.radius(ind1),tuning.size.radius(ind1),tuning.size.x(ind1),tuning.size.y(ind1),pi/360);
 plot(x,y,'k')
-ind2 = find(sqrt(tuning.size.x.^2+tuning.size.y.^2) < 6 & sqrt(tuning.size.x.^2+tuning.size.y.^2) > 3,1);
+ind2 = find(sqrt(tuning.size.x.^2+tuning.size.y.^2) < 6 & sqrt(tuning.size.x.^2+tuning.size.y.^2) > 3 & tuning.speed.pref > 10,1);
 [x,y] = ellipse(tuning.size.radius(ind2),tuning.size.radius(ind2),tuning.size.x(ind2),tuning.size.y(ind2),pi/360);
-plot(x,y,'k')
+plot(x,y,'-','Color',[0,174,239]/255)
 plotVertical(0);
 plotHorizontal(0);
 xlabel('Horizontal position (deg)')
@@ -207,6 +212,63 @@ ylabel('Mean response')
 if mymakeaxisflg
     mymakeaxis(gca);
 end
+
+%% Tuning
+ExInd = ind2; %find(tuning.speed.pref > 15,1);
+figure('Name','Popultion','Position',[440 31 559 767])
+f = @(x,p)(tuning.theta.Amp * exp( -(x-p).^2 / tuning.theta.sig ));
+x = linspace(-90,90,200);
+randN = 50;
+randInds = randsample(N,randN);
+subplot(4,1,1)
+for ni = 1:randN
+    plot(x,f(x,tuning.theta.pref(randInds(ni))),'Color',[0.6 0.6 0.6])
+    hold on
+end
+plot(x,f(x,tuning.theta.pref(ExInd)),'k','LineWidth',2)
+xlabel('Direction (deg)')
+ylabel('Spikes/s')
+axis tight
+mymakeaxis(gca,'xticks',[-90,0,90],'yticks',[0 10])
+
+subplot(4,1,2)
+x = linspace(2^(tuning.speed.range(1)),2^(tuning.speed.range(2)),200);
+f = @(x,p)(tuning.speed.Amp * exp( -(log2(x./p)).^2 / tuning.speed.sig ));
+for ni = 1:randN
+    plot(x,f(x,tuning.speed.pref(randInds(ni))),'Color',[0.6 0.6 0.6])
+    hold on
+end
+plot(x,f(x,tuning.speed.pref(ExInd)),'k','LineWidth',2)
+xlabel('Direction (deg)')
+ylabel('Spikes/s')
+axis tight
+mymakeaxis(gca,'yticks',[0 10])
+
+subplot(4,1,[3,4])
+scatter(tuning.speed.pref,tuning.theta.pref,40,squeeze(n{3}(1,4,20,:)),'filled')
+hold on
+scatter(tuning.speed.pref(ExInd),tuning.theta.pref(ExInd),200,squeeze(n{3}(1,4,20,(ExInd))),'filled')
+hax = gca;
+hax.XScale = 'log';
+hax.TickDir = 'out';
+cax = myrgb(64,[0,0,0]/255,[255,0,0]/255);
+colormap(cax)
+colorbar
+axis tight
+plotVertical(speeds(4));
+axis square
+xlabel('log(Pref speed)')
+ylabel('Pref direction')
+% mymakeaxis(gca,'xticks',[1,2,4,8,16,32,64,128])
+
+% figure('Name','Noise correlation')
+% imagesc(1:length(tuning.theta.pref),1:length(tuning.theta.pref),rNN{3} - diag(diag(rNN{3})))
+% colormap gray
+% axis square
+% h.YDir = 'normal';
+% xlabel('Neuron i')
+% ylabel('Neuron j')
+% colorbar
 
 %% Functions
 
