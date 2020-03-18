@@ -165,7 +165,7 @@ for di = 1:length(thetas)
         ylabel('Eye speed variance (deg/s)^2')
     end
     
-%     ylim([0 6])
+%     ylim([0 3.5])
     axis square
     if mymakeaxisflg
         mymakeaxis(gca);
@@ -283,6 +283,23 @@ ylabel('Gain')
 if mymakeaxisflg
     mymakeaxis(gca,'xticks',[0,10,20]);
 end
+
+%% Example correlation
+zE = (squeeze(e{3}(1,4,:,2))-mean(squeeze(e{3}(1,4,:,2))))/std(squeeze(e{3}(1,4,:,2)));
+zN = (squeeze(n{3}(1,4,:,ind2))-mean(squeeze(n{3}(1,4,:,ind2))))/std(squeeze(n{3}(1,4,:,ind2)));
+
+figure('Name','Neuron estimate correlation')
+scatter(zN,zE,80,[0 0 0],'filled')
+hold on
+axis equal
+plotUnity;
+axis square
+plotHorizontal(0);
+plotVertical(0);
+xlabel('z-score (neuron)')
+ylabel('z-score (pursuit)')
+
+mymakeaxis(gca)
 
 %% Functions
 

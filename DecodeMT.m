@@ -178,7 +178,12 @@ if plotflg
         hsig = scatter(abs(Dtemp(Ptemp < thres)),Rtemp(Ptemp < thres));
         set(hsig,'MarkerFaceColor',[1 1 1],'MarkerEdgeColor',[0 0 0],...
             'MarkerFaceAlpha',1,'MarkerEdgeAlpha',1)
-        axis([0 180 -0.7 0.7])
+        axis([0 180 -0.6 0.6])
+        plotHorizontal(0.5);
+        plotHorizontal(0);
+        plotHorizontal(-0.5);
+        hax = gca;
+        hax.TickDir = 'out';
         xlabel('Difference from preferred direction ')
         if i == 1
             ylabel('Neuron-eye direction correlation')
@@ -203,7 +208,15 @@ if plotflg
             'MarkerFaceAlpha',1,'MarkerEdgeAlpha',1)
         set(gca,'XScale','log')
         ax = axis;
-        axis([0.5 ax(2) -0.7 0.7])
+        axis([0.5 ax(2) -0.6 0.6])
+        plotHorizontal(0.5);
+        plotHorizontal(0);
+        plotHorizontal(-0.5);
+        axis square
+        hax = gca;
+        hax.TickDir = 'out';
+        hax.YTick = [-0.5,0,0.5];
+        hax.XTick = [1,10,100,1000];
         xlabel('Percent perferred speed')
         if i == 1
             ylabel('Neuron-eye direction correlation')
