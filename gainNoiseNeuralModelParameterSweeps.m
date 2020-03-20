@@ -55,6 +55,7 @@ saveOptsTemp = saveOpts.saveRuns;
 sizeProps.minEccentricity = 1;
 sizeProps.maxEccentricity = 30;
 for simi = 1:size(params,1)
+    disp(['Sweep ' num2str(simi) ' of ' num2str(size(params,1))])
     sizeProps.surround_weight = params(simi,1);
     sizeProps.exponential = params(simi,3);
     sizeProps.threshold = params(simi,2);
