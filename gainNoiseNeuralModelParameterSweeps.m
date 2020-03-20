@@ -9,10 +9,10 @@ function [ws,sigGs,Gs] = gainNoiseNeuralModelParameterSweeps(varargin)
 %%
 
 %% Defaults
-surround_weights_default = linspace(0,0.1,2);
-thresholds_default = linspace(0,0.5,2);
-exponentials_default = linspace(0.01,1,2);
-gainNoises_default = linspace(0,1,2);
+surround_weights_default = linspace(0,0.1,10);
+thresholds_default = linspace(0,0.5,10);
+exponentials_default = linspace(0.01,1,10);
+gainNoises_default = linspace(0,1,10);
 
 saveOpts_default.saveRuns.On = true;
 saveOpts_default.saveRuns.location = ...
