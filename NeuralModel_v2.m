@@ -1,4 +1,4 @@
-function [n, M, rNN, e, tuning] = NeuralModel_v2(varargin)
+function [n, M, rNN, e, tuning, w, sigG, G] = NeuralModel_v2(varargin)
 %% NeuralModel_v1
 %
 %
@@ -23,9 +23,12 @@ Cov_default.thetaLengthConstant = 0.4;
 Cov_default.speedLengthConstant = 0.3;
 Cov_default.separationLengthConstant = 0.3;
 Cov_default.alpha = 0;
+Cov_default.diffAlpha = 0;
 
 sizeProps_default.minEccentricity = 1;
 sizeProps_default.maxEccentricity = 30;
+
+saveOpts_default.On = false;
 
 %% Parse inputs
 Parser = inputParser;
@@ -41,6 +44,10 @@ addParameter(Parser,'epsilon',0.05)
 addParameter(Parser,'gainNoise',0)
 addParameter(Parser,'sizeProps',sizeProps_default)
 addParameter(Parser,'mymakeaxisflg',true)
+addParameter(Parser,'plotMT',true)
+addParameter(Parser,'plotDecoding',true)
+addParameter(Parser,'plotResults',true)
+addParameter(Parser,'saveOpts',saveOpts_default)
 
 parse(Parser,varargin{:})
 
@@ -55,6 +62,10 @@ epsilon = Parser.Results.epsilon;
 gainNoise = Parser.Results.gainNoise;
 sizeProps = Parser.Results.sizeProps;
 mymakeaxisflg = Parser.Results.mymakeaxisflg;
+plotMT = Parser.Results.plotMT;
+plotDecoding = Parser.Results.plotDecoding;
+plotResults = Parser.Results.plotResults;
+saveOpts = Parser.Results.saveOpts;
 
 %% Generate population size
 % fun=@(x1) (1.14*x1.^-0.76); % Albright & Desimone 87 Exp Brain Res (mm/deg)
@@ -75,7 +86,7 @@ normalizer = [mean(gainTemp(:))/mean(log2(speeds)), 0]; % For -90 90 theta range
 %% Run MT simulations
 for szi = 1:length(sizes)
     
-    [n{szi}, M{szi}, rNN{szi}, ~, ~] = DirSpeedSizeLocMT(thetas,speeds,sizes(szi),'trialN',400,'tuning',tuning,'plotflg',true,'mymakeaxisflg',mymakeaxisflg);
+    [n{szi}, M{szi}, rNN{szi}, ~, ~] = DirSpeedSizeLocMT(thetas,speeds,sizes(szi),'trialN',400,'tuning',tuning,'plotflg',plotMT,'mymakeaxisflg',mymakeaxisflg);
     
 end
 
@@ -86,7 +97,7 @@ end
 s = cat(3,Ds',Ss');
 
 for szi = 1:length(sizes)
-    [e{szi}, gain{szi}] = DecodeMT(n{szi},tuning,s,'gainNoise',gainNoise,'epsilon',epsilon,'b',normalizer,'mymakeaxisflg',mymakeaxisflg);%,'plotflg',false);
+    [e{szi}, gain{szi}] = DecodeMT(n{szi},tuning,s,'gainNoise',gainNoise,'epsilon',epsilon,'b',normalizer,'mymakeaxisflg',mymakeaxisflg,'plotflg',plotDecoding);
     
     eBar = mean(e{szi},3);
     eVar = var(e{szi},1,3);
@@ -110,196 +121,203 @@ for szi = 1:length(sizes)
     ys = e{szi}(1,:,:,2);
     xs = repmat(speeds,[size(ys,1),1,size(ys,3)]);
     betas(:,szi) = regress(ys(:),[xs(:) ones(size(xs(:)))]);
+    G(:,szi) = betas(1,szi);
 end
 
 %% Plotting
-
+if plotResults
     szcolors = [0.8 0.8 0.8;...
-                0.5 0.5 0.5;...
-                  0   0   0];
-              
-h = figure('Name','Target v Eye speed','Position',[26 366 621 387]);
-for szi = 1:length(sizes)
-    plot(speeds,squeeze(e{szi}(1,:,randsample(size(e{szi},3),100),2)),'o',...
-        'Color',szcolors(szi,:),'MarkerFaceColor',szcolors(szi,:))
-    hold on
-    xs = linspace(min(speeds),max(speeds),100);
-    plot(xs,betas(1,szi)*xs+betas(2,szi),'r-')
-end
-axis square
-xlabel('Target speed (deg/s)')
-ylabel('Eye speed (deg/s)')
-plotUnity;
-if mymakeaxisflg
-    mymakeaxis(gca,'xticks',[0,10,20],'yticks',[0 10 20]);
-end
-
-figure;
-Ncolors = colormap('lines');
-
-              
-Ncolors = [szcolors; Ncolors];
-
-colors = projectColorMaps('speeds','samples',1:length(speeds),...
-    'sampleDepth',length(speeds));
-
-% figure
-for di = 1:length(thetas)
-    subplot(1,length(thetas),di)
+        0.5 0.5 0.5;...
+        0   0   0];
+    
+    h = figure('Name','Target v Eye speed','Position',[26 366 621 387]);
     for szi = 1:length(sizes)
-        plot(permute(VeM(di,:,szi),[2,3,1]),permute(VeVAR(di,:,szi),[2,3,1]),...
-            'o','Color',Ncolors(szi,:),'MarkerFaceColor',Ncolors(szi,:),'MarkerSize',10)
+        plot(speeds,squeeze(e{szi}(1,:,randsample(size(e{szi},3),100),2)),'o',...
+            'Color',szcolors(szi,:),'MarkerFaceColor',szcolors(szi,:))
         hold on
-        for si = 1:length(speeds)
-            %         for si = 1:length(speeds)
-%             plot(VeM(di,si,szi),VeVAR(di,si,szi),'o','Color',colors(si,:),...
-%                 'MarkerFaceColor',Ncolors(szi,:),'MarkerSize',10)
-%             hold on
-%             plot(VeM(di,si,szi),gainSDN(VeM(di,si,szi),speeds(si),w,sigG),'s',...
-%                 'Color',colors(si,:),'MarkerFaceColor',Ncolors(szi,:),'MarkerSize',10)
-            %         end
-        end
-        x = linspace(0,max(speeds),100);
-        plot(betas(1,szi)*x+betas(2,szi),gainSDN(betas(1,szi)*x+betas(2,szi),x,w,sigG),'-','Color',Ncolors(szi,:))
-        xlabel('Mean eye speed (deg/s)')
-        ylabel('Eye speed variance (deg/s)^2')
+        xs = linspace(min(speeds),max(speeds),100);
+        plot(xs,betas(1,szi)*xs+betas(2,szi),'r-')
+    end
+    axis square
+    xlabel('Target speed (deg/s)')
+    ylabel('Eye speed (deg/s)')
+    plotUnity;
+    if mymakeaxisflg
+        mymakeaxis(gca,'xticks',[0,10,20],'yticks',[0 10 20]);
     end
     
-%     ylim([0 3.5])
+    figure;
+    Ncolors = colormap('lines');
+    
+    
+    Ncolors = [szcolors; Ncolors];
+    
+    colors = projectColorMaps('speeds','samples',1:length(speeds),...
+        'sampleDepth',length(speeds));
+    
+    % figure
+    for di = 1:length(thetas)
+        subplot(1,length(thetas),di)
+        for szi = 1:length(sizes)
+            plot(permute(VeM(di,:,szi),[2,3,1]),permute(VeVAR(di,:,szi),[2,3,1]),...
+                'o','Color',Ncolors(szi,:),'MarkerFaceColor',Ncolors(szi,:),'MarkerSize',10)
+            hold on
+            for si = 1:length(speeds)
+                %         for si = 1:length(speeds)
+                %             plot(VeM(di,si,szi),VeVAR(di,si,szi),'o','Color',colors(si,:),...
+                %                 'MarkerFaceColor',Ncolors(szi,:),'MarkerSize',10)
+                %             hold on
+                %             plot(VeM(di,si,szi),gainSDN(VeM(di,si,szi),speeds(si),w,sigG),'s',...
+                %                 'Color',colors(si,:),'MarkerFaceColor',Ncolors(szi,:),'MarkerSize',10)
+                %         end
+            end
+            x = linspace(0,max(speeds),100);
+            plot(betas(1,szi)*x+betas(2,szi),gainSDN(betas(1,szi)*x+betas(2,szi),x,w,sigG),'-','Color',Ncolors(szi,:))
+            xlabel('Mean eye speed (deg/s)')
+            ylabel('Eye speed variance (deg/s)^2')
+        end
+        
+        %     ylim([0 3.5])
+        axis square
+        if mymakeaxisflg
+            mymakeaxis(gca);
+        end
+    end
+    
+    %% Tuning
+    h = figure('Name','MT RF centers','Position',[713 316 1530 420]);
+    subplot(1,2,1)
+    plot(tuning.size.x,tuning.size.y,'k.')
+    hold on
+    for szi = 1:length(sizes)
+        [x,y] = ellipse(sizes(szi)/2,sizes(szi)/2,0,0,pi/360);
+        plot(x,y,'r')
+    end
+    axis([-1.2*sizeProps.maxEccentricity 1.2*sizeProps.maxEccentricity -1.2*sizeProps.maxEccentricity 1.2*sizeProps.maxEccentricity])
     axis square
+    ind1 = find(sqrt(tuning.size.x.^2+tuning.size.y.^2) > 9 & sqrt(tuning.size.x.^2+tuning.size.y.^2) < 15,1);
+    [x,y] = ellipse(tuning.size.radius(ind1),tuning.size.radius(ind1),tuning.size.x(ind1),tuning.size.y(ind1),pi/360);
+    plot(x,y,'k')
+    ind2 = find(sqrt(tuning.size.x.^2+tuning.size.y.^2) < 6 & sqrt(tuning.size.x.^2+tuning.size.y.^2) > 3 & tuning.speed.pref > 10,1);
+    [x,y] = ellipse(tuning.size.radius(ind2),tuning.size.radius(ind2),tuning.size.x(ind2),tuning.size.y(ind2),pi/360);
+    plot(x,y,'-','Color',[0,174,239]/255)
+    plotVertical(0);
+    plotHorizontal(0);
+    xlabel('Horizontal position (deg)')
+    ylabel('Vertical position (deg)')
     if mymakeaxisflg
         mymakeaxis(gca);
     end
-end
-
-h = figure('Name','MT RF centers','Position',[713 316 1530 420]);
-subplot(1,2,1)
-plot(tuning.size.x,tuning.size.y,'k.')
-hold on
-for szi = 1:length(sizes)
-    [x,y] = ellipse(sizes(szi)/2,sizes(szi)/2,0,0,pi/360);
-    plot(x,y,'r')
-end
-axis([-1.2*sizeProps.maxEccentricity 1.2*sizeProps.maxEccentricity -1.2*sizeProps.maxEccentricity 1.2*sizeProps.maxEccentricity])
-axis square
-ind1 = find(sqrt(tuning.size.x.^2+tuning.size.y.^2) > 9 & sqrt(tuning.size.x.^2+tuning.size.y.^2) < 15,1);
-[x,y] = ellipse(tuning.size.radius(ind1),tuning.size.radius(ind1),tuning.size.x(ind1),tuning.size.y(ind1),pi/360);
-plot(x,y,'k')
-ind2 = find(sqrt(tuning.size.x.^2+tuning.size.y.^2) < 6 & sqrt(tuning.size.x.^2+tuning.size.y.^2) > 3 & tuning.speed.pref > 10,1);
-[x,y] = ellipse(tuning.size.radius(ind2),tuning.size.radius(ind2),tuning.size.x(ind2),tuning.size.y(ind2),pi/360);
-plot(x,y,'-','Color',[0,174,239]/255)
-plotVertical(0);
-plotHorizontal(0);
-xlabel('Horizontal position (deg)')
-ylabel('Vertical position (deg)')
-if mymakeaxisflg
-    mymakeaxis(gca);
-end
-
-subplot(1,2,2)
-for szi = 1:length(sizes)
-    plot(sqrt(tuning.size.x.^2+tuning.size.y.^2),squeeze(mean(M{szi},2)),'o')
+    
+    subplot(1,2,2)
+    for szi = 1:length(sizes)
+        plot(sqrt(tuning.size.x.^2+tuning.size.y.^2),squeeze(mean(M{szi},2)),'o')
+        hold on
+        plot(sqrt(tuning.size.x(ind1).^2+tuning.size.y(ind1).^2),squeeze(mean(M{szi}(:,:,ind1),2)),...
+            'ko','MarkerFaceColor',[0 0 0])
+        plot(sqrt(tuning.size.x(ind2).^2+tuning.size.y(ind2).^2),squeeze(mean(M{szi}(:,:,ind2),2)),...
+            'ko','MarkerFaceColor',[0 0 0])
+        plotVertical(sizes(szi)/2);
+    end
+    
+    xlabel('Eccentricity (deg)')
+    ylabel('Mean response')
+    if mymakeaxisflg
+        mymakeaxis(gca);
+    end
+    
+    ExInd = ind2; %find(tuning.speed.pref > 15,1);
+    figure('Name','Popultion','Position',[440 31 559 767])
+    f = @(x,p)(tuning.theta.Amp * exp( -(x-p).^2 / tuning.theta.sig ));
+    x = linspace(-90,90,200);
+    randN = 50;
+    randInds = randsample(N,randN);
+    subplot(4,1,1)
+    for ni = 1:randN
+        plot(x,f(x,tuning.theta.pref(randInds(ni))),'Color',[0.6 0.6 0.6])
+        hold on
+    end
+    plot(x,f(x,tuning.theta.pref(ExInd)),'k','LineWidth',2)
+    xlabel('Direction (deg)')
+    ylabel('Spikes/s')
+    axis tight
+    mymakeaxis(gca,'xticks',[-90,0,90],'yticks',[0 10])
+    
+    subplot(4,1,2)
+    x = linspace(2^(tuning.speed.range(1)),2^(tuning.speed.range(2)),200);
+    f = @(x,p)(tuning.speed.Amp * exp( -(log2(x./p)).^2 / tuning.speed.sig ));
+    for ni = 1:randN
+        plot(x,f(x,tuning.speed.pref(randInds(ni))),'Color',[0.6 0.6 0.6])
+        hold on
+    end
+    plot(x,f(x,tuning.speed.pref(ExInd)),'k','LineWidth',2)
+    xlabel('Direction (deg)')
+    ylabel('Spikes/s')
+    axis tight
+    mymakeaxis(gca,'yticks',[0 10])
+    
+    subplot(4,1,[3,4])
+    scatter(tuning.speed.pref,tuning.theta.pref,40,squeeze(n{3}(1,4,20,:)),'filled')
     hold on
-    plot(sqrt(tuning.size.x(ind1).^2+tuning.size.y(ind1).^2),squeeze(mean(M{szi}(:,:,ind1),2)),...
-        'ko','MarkerFaceColor',[0 0 0])
-    plot(sqrt(tuning.size.x(ind2).^2+tuning.size.y(ind2).^2),squeeze(mean(M{szi}(:,:,ind2),2)),...
-        'ko','MarkerFaceColor',[0 0 0])
-    plotVertical(sizes(szi)/2);
-end
-
-xlabel('Eccentricity (deg)')
-ylabel('Mean response')
-if mymakeaxisflg
-    mymakeaxis(gca);
-end
-
-%% Tuning
-ExInd = ind2; %find(tuning.speed.pref > 15,1);
-figure('Name','Popultion','Position',[440 31 559 767])
-f = @(x,p)(tuning.theta.Amp * exp( -(x-p).^2 / tuning.theta.sig ));
-x = linspace(-90,90,200);
-randN = 50;
-randInds = randsample(N,randN);
-subplot(4,1,1)
-for ni = 1:randN
-    plot(x,f(x,tuning.theta.pref(randInds(ni))),'Color',[0.6 0.6 0.6])
+    scatter(tuning.speed.pref(ExInd),tuning.theta.pref(ExInd),200,squeeze(n{3}(1,4,20,(ExInd))),'filled')
+    hax = gca;
+    hax.XScale = 'log';
+    hax.TickDir = 'out';
+    cax = myrgb(64,[0,0,0]/255,[255,0,0]/255);
+    colormap(cax)
+    colorbar
+    axis tight
+    plotVertical(speeds(4));
+    axis square
+    xlabel('log(Pref speed)')
+    ylabel('Pref direction')
+    % mymakeaxis(gca,'xticks',[1,2,4,8,16,32,64,128])
+    
+    % figure('Name','Noise correlation')
+    % imagesc(1:length(tuning.theta.pref),1:length(tuning.theta.pref),rNN{3} - diag(diag(rNN{3})))
+    % colormap gray
+    % axis square
+    % h.YDir = 'normal';
+    % xlabel('Neuron i')
+    % ylabel('Neuron j')
+    % colorbar
+    
+    %% Gain
+    h = figure('Name','Gain vs speed','Position',[26 366 621 387]);
+    for szi = 1:length(sizes)
+        plot(speeds,squeeze(gain{szi}(1,:,randsample(size(gain{szi},3),100))),'o',...
+            'Color',szcolors(szi,:),'MarkerFaceColor',szcolors(szi,:))
+        hold on
+    end
+    axis square
+    xlabel('Target speed (deg/s)')
+    ylabel('Gain')
+    if mymakeaxisflg
+        mymakeaxis(gca,'xticks',[0,10,20]);
+    end
+    
+    %% Example correlation
+    zE = (squeeze(e{3}(1,4,:,2))-mean(squeeze(e{3}(1,4,:,2))))/std(squeeze(e{3}(1,4,:,2)));
+    zN = (squeeze(n{3}(1,4,:,ind2))-mean(squeeze(n{3}(1,4,:,ind2))))/std(squeeze(n{3}(1,4,:,ind2)));
+    
+    figure('Name','Neuron estimate correlation')
+    scatter(zN,zE,80,[0 0 0],'filled')
     hold on
-end
-plot(x,f(x,tuning.theta.pref(ExInd)),'k','LineWidth',2)
-xlabel('Direction (deg)')
-ylabel('Spikes/s')
-axis tight
-mymakeaxis(gca,'xticks',[-90,0,90],'yticks',[0 10])
-
-subplot(4,1,2)
-x = linspace(2^(tuning.speed.range(1)),2^(tuning.speed.range(2)),200);
-f = @(x,p)(tuning.speed.Amp * exp( -(log2(x./p)).^2 / tuning.speed.sig ));
-for ni = 1:randN
-    plot(x,f(x,tuning.speed.pref(randInds(ni))),'Color',[0.6 0.6 0.6])
-    hold on
-end
-plot(x,f(x,tuning.speed.pref(ExInd)),'k','LineWidth',2)
-xlabel('Direction (deg)')
-ylabel('Spikes/s')
-axis tight
-mymakeaxis(gca,'yticks',[0 10])
-
-subplot(4,1,[3,4])
-scatter(tuning.speed.pref,tuning.theta.pref,40,squeeze(n{3}(1,4,20,:)),'filled')
-hold on
-scatter(tuning.speed.pref(ExInd),tuning.theta.pref(ExInd),200,squeeze(n{3}(1,4,20,(ExInd))),'filled')
-hax = gca;
-hax.XScale = 'log';
-hax.TickDir = 'out';
-cax = myrgb(64,[0,0,0]/255,[255,0,0]/255);
-colormap(cax)
-colorbar
-axis tight
-plotVertical(speeds(4));
-axis square
-xlabel('log(Pref speed)')
-ylabel('Pref direction')
-% mymakeaxis(gca,'xticks',[1,2,4,8,16,32,64,128])
-
-% figure('Name','Noise correlation')
-% imagesc(1:length(tuning.theta.pref),1:length(tuning.theta.pref),rNN{3} - diag(diag(rNN{3})))
-% colormap gray
-% axis square
-% h.YDir = 'normal';
-% xlabel('Neuron i')
-% ylabel('Neuron j')
-% colorbar
-
-%% Gain
-h = figure('Name','Gain vs speed','Position',[26 366 621 387]);
-for szi = 1:length(sizes)
-    plot(speeds,squeeze(gain{szi}(1,:,randsample(size(gain{szi},3),100))),'o',...
-        'Color',szcolors(szi,:),'MarkerFaceColor',szcolors(szi,:))
-    hold on
-end
-axis square
-xlabel('Target speed (deg/s)')
-ylabel('Gain')
-if mymakeaxisflg
-    mymakeaxis(gca,'xticks',[0,10,20]);
+    axis equal
+    plotUnity;
+    axis square
+    plotHorizontal(0);
+    plotVertical(0);
+    xlabel('z-score (neuron)')
+    ylabel('z-score (pursuit)')
+    
+    mymakeaxis(gca)
 end
 
-%% Example correlation
-zE = (squeeze(e{3}(1,4,:,2))-mean(squeeze(e{3}(1,4,:,2))))/std(squeeze(e{3}(1,4,:,2)));
-zN = (squeeze(n{3}(1,4,:,ind2))-mean(squeeze(n{3}(1,4,:,ind2))))/std(squeeze(n{3}(1,4,:,ind2)));
-
-figure('Name','Neuron estimate correlation')
-scatter(zN,zE,80,[0 0 0],'filled')
-hold on
-axis equal
-plotUnity;
-axis square
-plotHorizontal(0);
-plotVertical(0);
-xlabel('z-score (neuron)')
-ylabel('z-score (pursuit)')
-
-mymakeaxis(gca)
+%% Save
+if saveOpts.On
+    save(saveOpts.location)
+end
 
 %% Functions
 

@@ -33,14 +33,11 @@ mymakeaxisflg = Parser.Results.mymakeaxisflg;
 f = nan(length(thetas),length(speeds),length(tuning.theta.pref));
 n = nan(length(thetas),length(speeds),trialN,length(tuning.theta.pref));
 
-% Generate covariance matrix
-[C,Q] = neuralCov(tuning);
-
 % Cycle through input thetas and speeds
 for thetai = 1:length(thetas)
     for speedi = 1:length(speeds)
         f(thetai,speedi,:) = neuralTuning(thetas(thetai),speeds(speedi),sz,tuning);
-        
+        [C,Q] = neuralCov(tuning,thetas(thetai),sz,speeds(speedi));
 %         n(thetai,speedi,:,:) = mvnrnd(permute(f(thetai,speedi,:),[1,3,2]),C,trialN);
         for triali = 1:trialN
             y = permute(Q*randn(length(tuning.theta.pref),1),[2,3,4,1]);
@@ -220,11 +217,12 @@ function f = sizeTuning(sz,tuning)
     
     
 %% neuralCov
-function [C,Q] = neuralCov(tuning)
+function [C,Q] = neuralCov(tuning,theta,sz,s)
 %% Model the covariance as a Gaussian process
 N = length(tuning.theta.pref);
 C = zeros(length(tuning.theta.pref),length(tuning.theta.pref));
 Q = zeros(size(C));
+diffC = tuning.Cov.sigf*derivativeWRTspeed(tuning,theta,sz,s)*derivativeWRTspeed(tuning,theta,sz,s)';
 for i = 1:length(tuning.theta.pref)
     for j = 1:length(tuning.theta.pref)
         
@@ -244,6 +242,9 @@ for i = 1:length(tuning.theta.pref)
                     tuning.Cov.alpha*60*rand).^2 ./ ...
                     (60^2*tuning.Cov.separationLengthConstant.^2) ...
                     ) );
+                
+                C(i,j) = (1-tuning.Cov.diffAlpha)*C(i,j) + ...
+                    tuning.Cov.diffAlpha*diffC(i,j);
                 
             end
             Q(i,j) = 1/sqrt(N) * ...
@@ -274,6 +275,17 @@ QQ = Q*Q';
 % QQ = QQ - diag(diag(QQ)) + diag(ones(size(QQ,1)));
 Q = real(sqrtm(QQ));
 % Q = real(sqrtm(C));
+
+%% Derivative wrt speed
+function df = derivativeWRTspeed(tuning,theta,sz,s)
+%%
+f_theta = dirTuning(theta,tuning);
+f_sz = sizeTuning(sz,tuning);
+
+df_s = (-tuning.speed.Amp*log2(s./tuning.speed.pref)./(s*tuning.speed.sig.^2*log(2))) .* ...
+    exp( -(log2(s./tuning.speed.pref)).^2./(2*tuning.speed.sig.^2) );
+
+df = f_theta.*f_sz.*df_s;
 
 %% defaultTuning
 function tuning = defaultTuning()
@@ -308,3 +320,4 @@ tuning.Cov.sigf = 0.36;
 tuning.Cov.thetaLengthConstant = 0.3;
 tuning.Cov.speedLengthConstant = 0.4;
 tuning.Cov.alpha = 0;
+tuning.Cov.diffAlpha = 0;
