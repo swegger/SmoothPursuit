@@ -16,10 +16,10 @@ gainNoises_default = linspace(0,1,10);
 
 saveOpts_default.saveRuns.On = true;
 saveOpts_default.saveRuns.location = ...
-    ['~/Projects/MultiSizePursuit/parameterSweeps/NeuralModel_v2_run_' datestr(now,'yyyymmdd') '_0'];
+    ['~/Projects/MultiSizePursuit/Circuit/parameterSweeps/NeuralModel_v2_run_' datestr(now,'yyyymmdd') '_0'];
 saveOpts_default.On = true;
 saveOpts_default.location = ...
-    ['~/Projects/MultiSizePursuit/parameterSweeps/gainNoiseParameterSweep_' datestr(now,'yyyymmdd')];
+    ['~/Projects/MultiSizePursuit/Circuit/parameterSweeps/gainNoiseParameterSweep_' datestr(now,'yyyymmdd')];
 
 thetas_default = 0;
 speeds_default = 4:4:20;
