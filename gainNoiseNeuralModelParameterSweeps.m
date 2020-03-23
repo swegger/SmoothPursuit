@@ -60,7 +60,7 @@ for simi = 1:size(params,1)
     sizeProps.exponential = params(simi,3);
     sizeProps.threshold = params(simi,2);
     
-    saveOptsTemp.location = [saveOptsTemp.location(1:end-1) num2str(simi)];
+    saveOptsTemp.location = [saveOptsTemp.location(1:end-length(num2str(simi-1))) num2str(simi)];
     % With gain noise
     [~, ~, ~, ~, ~, ws(simi), sigGs(simi), Gs(simi,:)] = NeuralModel_v2(...
         'thetas',thetas,'speeds',speeds,...
