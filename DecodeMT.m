@@ -1,4 +1,4 @@
-function [e,gain] = DecodeMT(n,tuning,s,varargin)
+function [e,gain,figureHandles] = DecodeMT(n,tuning,s,varargin)
 %% DecodeMT
 %
 %
@@ -114,7 +114,8 @@ dirDiff = repmat(s(:,:,1),[1,1,size(Rs,3),size(Rs,4)]) - ...
 
 %% Plotting
 if plotflg
-    figure('Name','Decoding performance','Position',[112 378 1197 420])
+    figureHandles.decodingPerformance = ...
+        figure('Name','Decoding performance','Position',[112 378 1197 420]);
     subplot(1,3,1)
     for triali = 1:size(e,3)
         quiver(vA(:,:,triali,1),vA(:,:,triali,2),'Color',[0.6 0.6 0.6])
@@ -161,7 +162,8 @@ if plotflg
     end
     
     %%
-    figure('Name','Neuron-estimate correlations')
+    figureHandles.neuon_est_corr = ...
+        figure('Name','Neuron-estimate correlations');
     dispSps = 1:size(Rs,2);
     dispDirs = 1:size(Rs,1);
     thres = 0.05;

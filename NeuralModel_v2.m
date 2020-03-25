@@ -29,6 +29,7 @@ sizeProps_default.minEccentricity = 1;
 sizeProps_default.maxEccentricity = 30;
 
 saveOpts_default.On = false;
+saveOpts_default.Fig = false;
 
 %% Parse inputs
 Parser = inputParser;
@@ -97,7 +98,11 @@ end
 s = cat(3,Ds',Ss');
 
 for szi = 1:length(sizes)
-    [e{szi}, gain{szi}] = DecodeMT(n{szi},tuning,s,'gainNoise',gainNoise,'epsilon',epsilon,'b',normalizer,'mymakeaxisflg',mymakeaxisflg,'plotflg',plotDecoding);
+    [e{szi}, gain{szi}, figureHandles] = DecodeMT(n{szi},tuning,s,'gainNoise',gainNoise,'epsilon',epsilon,'b',normalizer,'mymakeaxisflg',mymakeaxisflg,'plotflg',plotDecoding);
+    
+    if saveOpts.Figs
+        savefig(figureHandles.neuon_est_corr,[saveOpts.location '_MT_pursuit_corr_' num2str(sizes(szi)) ])
+    end
     
     eBar = mean(e{szi},3);
     eVar = var(e{szi},1,3);
@@ -116,6 +121,7 @@ end
 OPTIONS = optimset('Display','off');
 [w,sigG] = fit_gainSDN(speeds,VeM,VeVAR,0.1,gainNoise,OPTIONS);
 
+
 %% Estimate gain
 for szi = 1:length(sizes)
     ys = e{szi}(1,:,:,2);
@@ -132,11 +138,12 @@ if plotResults
     
     h = figure('Name','Target v Eye speed','Position',[26 366 621 387]);
     for szi = 1:length(sizes)
-        plot(speeds,squeeze(e{szi}(1,:,randsample(size(e{szi},3),100),2)),'o',...
-            'Color',szcolors(szi,:),'MarkerFaceColor',szcolors(szi,:))
+        szind = length(sizes)-szi+1;
+        plot(speeds,squeeze(e{szind}(1,:,randsample(size(e{szind},3),100),2)),'o',...
+            'Color',szcolors(szind,:),'MarkerFaceColor',szcolors(szind,:))
         hold on
         xs = linspace(min(speeds),max(speeds),100);
-        plot(xs,betas(1,szi)*xs+betas(2,szi),'r-')
+        plot(xs,betas(1,szind)*xs+betas(2,szind),'r-')
     end
     axis square
     xlabel('Target speed (deg/s)')
@@ -146,7 +153,11 @@ if plotResults
         mymakeaxis(gca,'xticks',[0,10,20],'yticks',[0 10 20]);
     end
     
-    figure;
+    if saveOpts.Figs
+        savefig(h,[saveOpts.location '_targVeye'])
+    end
+    
+    h = figure;
     Ncolors = colormap('lines');
     
     
@@ -159,8 +170,9 @@ if plotResults
     for di = 1:length(thetas)
         subplot(1,length(thetas),di)
         for szi = 1:length(sizes)
-            plot(permute(VeM(di,:,szi),[2,3,1]),permute(VeVAR(di,:,szi),[2,3,1]),...
-                'o','Color',Ncolors(szi,:),'MarkerFaceColor',Ncolors(szi,:),'MarkerSize',10)
+            szind = length(sizes)-szi+1;
+            plot(permute(VeM(di,:,szind),[2,3,1]),permute(VeVAR(di,:,szind),[2,3,1]),...
+                'o','Color',Ncolors(szind,:),'MarkerFaceColor',Ncolors(szind,:),'MarkerSize',10)
             hold on
             for si = 1:length(speeds)
                 %         for si = 1:length(speeds)
@@ -172,7 +184,7 @@ if plotResults
                 %         end
             end
             x = linspace(0,max(speeds),100);
-            plot(betas(1,szi)*x+betas(2,szi),gainSDN(betas(1,szi)*x+betas(2,szi),x,w,sigG),'-','Color',Ncolors(szi,:))
+            plot(betas(1,szind)*x+betas(2,szind),gainSDN(betas(1,szind)*x+betas(2,szind),x,w,sigG),'-','Color',Ncolors(szind,:))
             xlabel('Mean eye speed (deg/s)')
             ylabel('Eye speed variance (deg/s)^2')
         end
@@ -182,6 +194,10 @@ if plotResults
         if mymakeaxisflg
             mymakeaxis(gca);
         end
+    end
+
+    if saveOpts.Figs
+        savefig(h,[saveOpts.location 'muVvar'])
     end
     
     %% Tuning

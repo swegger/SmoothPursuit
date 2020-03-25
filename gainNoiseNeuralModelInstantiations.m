@@ -21,77 +21,97 @@ Cov.diffAlpha = 0;
 sizeProps.minEccentricity = 1;
 sizeProps.maxEccentricity = 30;
 
+saveOpts.On = true;
+saveOpts.Figs = true;
+locationBase = '~/Projects/MultiSizePursuit/Circuit/Results/';
+
+mymakeaxisflg = false;
+
 %% Vanillia (e.g. Cosyne 2020 poster)
 % Without gain noise
+saveOpts.location = [locationBase '_vanilla_gainNoiseOff_' datestr(now,'yyyymmdd')];
 NeuralModel_v2('thetas',thetas,'speeds',speeds,'gainNoise',0,...
-    'mymakeaxisflg',true)
+    'mymakeaxisflg',mymakeaxisflg,'saveOpts',saveOpts)
 
 % With gain noise
+saveOpts.location = [locationBase '_vanilla_gainNoiseOn_' datestr(now,'yyyymmdd')];
 NeuralModel_v2('thetas',thetas,'speeds',speeds,'gainNoise',0.5,...
-    'mymakeaxisflg',true)
+    'mymakeaxisflg',mymakeaxisflg,'saveOpts',saveOpts)
 
 %% Nonlinear integration
 sizeProps.surround_weight = 0;
 sizeProps.exponential = 1/1000;
 sizeProps.threshold = 0.5;
 % Without gain noise
+saveOpts.location = [locationBase '_nonlinear_gainNoiseOff_' datestr(now,'yyyymmdd')];
 NeuralModel_v2('thetas',thetas,'speeds',speeds,'gainNoise',0,'sizeProps',sizeProps,...
-    'mymakeaxisflg',true)
+    'mymakeaxisflg',mymakeaxisflg,'saveOpts',saveOpts)
 
 % With gain noise
+saveOpts.location = [locationBase '_nonlinear_gainNoiseOn_' datestr(now,'yyyymmdd')];
 NeuralModel_v2('thetas',thetas,'speeds',speeds,'gainNoise',0.5,'sizeProps',sizeProps,...
-    'mymakeaxisflg',true)
+    'mymakeaxisflg',mymakeaxisflg,'saveOpts',saveOpts)
 
 %% Surround suppression
 sizeProps.surround_weight = 0.1;
-sizeProps.exponential = 0;
+sizeProps.exponential = 1;
 sizeProps.threshold = 0.1;
 % Without gain noise
+saveOpts.location = [locationBase '_sursup_gainNoiseOff_' datestr(now,'yyyymmdd')];
 NeuralModel_v2('thetas',thetas,'speeds',speeds,'gainNoise',0,'sizeProps',sizeProps,...
-    'mymakeaxisflg',true)
+    'mymakeaxisflg',mymakeaxisflg,'saveOpts',saveOpts)
 
 % With gain noise
+saveOpts.location = [locationBase '_sursup_gainNoiseOn_' datestr(now,'yyyymmdd')];
 NeuralModel_v2('thetas',thetas,'speeds',speeds,'gainNoise',0.5,'sizeProps',sizeProps,...
-    'mymakeaxisflg',true)
+    'mymakeaxisflg',mymakeaxisflg,'saveOpts',saveOpts)
 
 %% Independent effect of threshold
 sizeProps.surround_weight = 0;
 sizeProps.exponential = 1;
 sizeProps.threshold = 0.5;
 % Without gain noise
+saveOpts.location = [locationBase '_threshold_gainNoiseOff_' datestr(now,'yyyymmdd')];
 NeuralModel_v2('thetas',thetas,'speeds',speeds,'gainNoise',0,'sizeProps',sizeProps,...
-    'mymakeaxisflg',true)
+    'mymakeaxisflg',mymakeaxisflg,'saveOpts',saveOpts)
 
 % With gain noise
+saveOpts.location = [locationBase '_threshold_gainNoiseOn_' datestr(now,'yyyymmdd')];
 NeuralModel_v2('thetas',thetas,'speeds',speeds,'gainNoise',0.5,'sizeProps',sizeProps,...
-    'mymakeaxisflg',true)
+    'mymakeaxisflg',mymakeaxisflg,'saveOpts',saveOpts)
 
 %% Differential correlations (diffAlpha = 0.1)
 Cov.diffAlpha = 0.1;
 % Without noise
+saveOpts.location = [locationBase '_diffCorr010_gainNoiseOff_' datestr(now,'yyyymmdd')];
 NeuralModel_v2('thetas',thetas,'speeds',speeds,'gainNoise',0,'Cov',Cov,...
-    'mymakeaxisflg',true)
+    'mymakeaxisflg',mymakeaxisflg,'saveOpts',saveOpts)
 
 % With noise
+saveOpts.location = [locationBase '_diffCorr010_gainNoiseOn_' datestr(now,'yyyymmdd')];
 NeuralModel_v2('thetas',thetas,'speeds',speeds,'gainNoise',0.5,'Cov',Cov,...
-    'mymakeaxisflg',true)
+    'mymakeaxisflg',mymakeaxisflg,'saveOpts',saveOpts)
 
 %% Differential correlations (diffAlpha = 0.2)
 Cov.diffAlpha = 0.2;
 % Without noise
+saveOpts.location = [locationBase '_diffCorr020_gainNoiseOff_' datestr(now,'yyyymmdd')];
 NeuralModel_v2('thetas',thetas,'speeds',speeds,'gainNoise',0,'Cov',Cov,...
-    'mymakeaxisflg',true)
+    'mymakeaxisflg',mymakeaxisflg,'saveOpts',saveOpts)
 
 % With noise
+saveOpts.location = [locationBase '_diffCorr020_gainNoiseOn_' datestr(now,'yyyymmdd')];
 NeuralModel_v2('thetas',thetas,'speeds',speeds,'gainNoise',0.5,'Cov',Cov,...
-    'mymakeaxisflg',true)
+    'mymakeaxisflg',mymakeaxisflg,'saveOpts',saveOpts)
 
 %% Differential correlations (diffAlpha = 0.4)
 Cov.diffAlpha = 0.4;
 % Without noise
+saveOpts.location = [locationBase '_diffCorr040_gainNoiseOff_' datestr(now,'yyyymmdd')];
 NeuralModel_v2('thetas',thetas,'speeds',speeds,'gainNoise',0,'Cov',Cov,...
-    'mymakeaxisflg',true)
+    'mymakeaxisflg',mymakeaxisflg,'saveOpts',saveOpts)
 
 % With noise
+saveOpts.location = [locationBase '_diffCorr040_gainNoiseOn_' datestr(now,'yyyymmdd')];
 NeuralModel_v2('thetas',thetas,'speeds',speeds,'gainNoise',0.5,'Cov',Cov,...
-    'mymakeaxisflg',true)
+    'mymakeaxisflg',mymakeaxisflg,'saveOpts',saveOpts)
