@@ -229,6 +229,9 @@ if plotflg
             mymakeaxis(gca)
         end
     end
+    
+else
+    figureHandles = NaN;
 end
     
 
