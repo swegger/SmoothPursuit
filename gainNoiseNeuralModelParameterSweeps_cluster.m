@@ -1,4 +1,4 @@
-function [ws,sigGs,Gs] = gainNoiseNeuralModelParameterSweeps(simi,varargin)
+function [ws,sigGs,Gs] = gainNoiseNeuralModelParameterSweeps_cluster(simi,varargin)
 %% gainNoiseNeuralModelParameterSweeps
 %
 %   [ws,sigGs,Gs] = gainNoiseNeuralModelParameterSweeps()
@@ -9,10 +9,10 @@ function [ws,sigGs,Gs] = gainNoiseNeuralModelParameterSweeps(simi,varargin)
 %%
 
 %% Defaults
-surround_weights_default = linspace(0,0.1,2);
-thresholds_default = linspace(0,0.5,2);
-exponentials_default = linspace(0.01,1,2);
-gainNoises_default = linspace(0,1,2);
+surround_weights_default = linspace(0,0.1,9);
+thresholds_default = linspace(0,0.5,9);
+exponentials_default = linspace(0.01,1,9);
+gainNoises_default = 0;%linspace(0,1,2);
 
 saveOpts_default.On = true;
 saveOpts_default.location = ...
