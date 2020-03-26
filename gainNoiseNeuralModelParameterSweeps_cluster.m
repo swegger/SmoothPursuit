@@ -17,6 +17,7 @@ gainNoises_default = linspace(0,1,2);
 saveOpts_default.On = true;
 saveOpts_default.location = ...
     ['hpc/group/lisbergerlab/se138/Projects/MultiSizePursuit/Circuit/parameterSweeps/NeuralModel_v2_run_' datestr(now,'yyyymmdd') '_0'];
+saveOpts_default.Figs = false;
 
 thetas_default = 0;
 speeds_default = 4:4:20;
