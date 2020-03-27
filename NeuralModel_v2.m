@@ -29,7 +29,7 @@ sizeProps_default.minEccentricity = 1;
 sizeProps_default.maxEccentricity = 30;
 
 saveOpts_default.On = false;
-saveOpts_default.Fig = false;
+saveOpts_default.Figs = false;
 
 %% Parse inputs
 Parser = inputParser;
