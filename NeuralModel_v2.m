@@ -139,8 +139,10 @@ if plotResults
     h = figure('Name','Target v Eye speed','Position',[26 366 621 387]);
     for szi = 1:length(sizes)
         szind = length(sizes)-szi+1;
-        plot(speeds,squeeze(e{szind}(1,:,randsample(size(e{szind},3),100),2)),'o',...
+        plot(speeds,squeeze(mean(e{szind}(1,:,:,2),3)),'o',...
             'Color',szcolors(szind,:),'MarkerFaceColor',szcolors(szind,:))
+%         plot(speeds,squeeze(e{szind}(1,:,randsample(size(e{szind},3),100),2)),'o',...
+%             'Color',szcolors(szind,:),'MarkerFaceColor',szcolors(szind,:))
         hold on
         xs = linspace(min(speeds),max(speeds),100);
         plot(xs,betas(1,szind)*xs+betas(2,szind),'r-')
@@ -301,9 +303,12 @@ if plotResults
     %% Gain
     h = figure('Name','Gain vs speed','Position',[26 366 621 387]);
     for szi = 1:length(sizes)
-        plot(speeds,squeeze(gain{szi}(1,:,randsample(size(gain{szi},3),100))),'o',...
+        plot(speeds,squeeze(mean(gain{szi}(1,:,:),3))/normalizer(1),'o-',...
             'Color',szcolors(szi,:),'MarkerFaceColor',szcolors(szi,:))
         hold on
+%         plot(speeds,squeeze(gain{szi}(1,:,randsample(size(gain{szi},3),100))),'o',...
+%             'Color',szcolors(szi,:),'MarkerFaceColor',szcolors(szi,:))
+%         hold on
     end
     axis square
     xlabel('Target speed (deg/s)')
