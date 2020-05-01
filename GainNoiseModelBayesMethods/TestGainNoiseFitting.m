@@ -274,7 +274,7 @@ plotUnity;
 
 xlabel('s')
 ylabel('m')
-mymakeaxis(gca,'interpreter','latex')
+% mymakeaxis(gca,'interpreter','latex')
 
 subplot(1,2,2)
 for ci = 1:length(gains)
@@ -298,7 +298,7 @@ end
 
 xlabel('$\langle m \rangle$')
 ylabel('$\langle (m - \langle m\rangle)^2 \rangle$')
-mymakeaxis(gca,'interpreter','latex')
+% mymakeaxis(gca,'interpreter','latex')
 
 switch modelparams.variant
     case 'BLS'
@@ -307,11 +307,27 @@ switch modelparams.variant
         f2 = @(sm,ws,trials)(ScalarBayesEstimators(sm,ws,smin,smax,'method',method) + b);
         plot(sm(:),f2(sm(:),ws,1),'k')
         hold on
+        lineProps.LineStyle = '-';
+        lineProps.Color = 'k';
+        plotVertical(9,'MinMax',[0 f2(9,ws,1)],'lineProperties',lineProps);
+        plotVertical(10,'MinMax',[0 f2(10,ws,1)],'lineProperties',lineProps);
+        plotVertical(11,'MinMax',[0 f2(11,ws,1)],'lineProperties',lineProps);
+        plotHorizontal(f2(9,ws,1),'MinMax',[0 9],'lineProperties',lineProps);
+        plotHorizontal(f2(10,ws,1),'MinMax',[0 10],'lineProperties',lineProps);
+        plotHorizontal(f2(11,ws,1),'MinMax',[0 11],'lineProperties',lineProps);
+        
+        plotVertical(19,'MinMax',[0 f2(19,ws,1)],'lineProperties',lineProps);
+        plotVertical(20,'MinMax',[0 f2(20,ws,1)],'lineProperties',lineProps);
+        plotVertical(21,'MinMax',[0 f2(21,ws,1)],'lineProperties',lineProps);
+        plotHorizontal(f2(19,ws,1),'MinMax',[0 19],'lineProperties',lineProps);
+        plotHorizontal(f2(20,ws,1),'MinMax',[0 20],'lineProperties',lineProps);
+        plotHorizontal(f2(21,ws,1),'MinMax',[0 21],'lineProperties',lineProps);
+        
         plotUnity;
-        xlabel('$s+\eta_s$')
-        ylabel('$f(s+\eta_s)$')
+        xlabel('s+\eta_s')
+        ylabel('f(s+\eta_s)')
         axis square
-        mymakeaxis(gca,'interpreter','latex')
+%         mymakeaxis(gca,'interpreter','latex')
 end
 
 %% Functions

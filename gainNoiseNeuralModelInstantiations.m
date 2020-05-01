@@ -21,8 +21,8 @@ Cov.diffAlpha = 0;
 sizeProps.minEccentricity = 1;
 sizeProps.maxEccentricity = 30;
 
-saveOpts.On = false;
-saveOpts.Figs = false;
+saveOpts.On = true;
+saveOpts.Figs = true;
 locationBase = '~/Projects/MultiSizePursuit/Circuit/Results/';
 
 mymakeaxisflg = false;
@@ -41,7 +41,7 @@ NeuralModel_v2('thetas',thetas,'speeds',speeds,'gainNoise',0,...
 
 % With gain noise
 saveOpts.location = [locationBase '_vanilla_gainNoiseOn_' datestr(now,'yyyymmdd')];
-NeuralModel_v2('thetas',thetas,'speeds',speeds,'gainNoise',0.5,...
+NeuralModel_v2('thetas',thetas,'speeds',speeds,'gainNoise',0.4,...
     'mymakeaxisflg',mymakeaxisflg,'saveOpts',saveOpts)
 
 %% Nonlinear integration
@@ -58,7 +58,7 @@ NeuralModel_v2('thetas',thetas,'speeds',speeds,'gainNoise',0,'sizeProps',sizePro
 
 % With gain noise
 saveOpts.location = [locationBase '_nonlinear_gainNoiseOn_' datestr(now,'yyyymmdd')];
-NeuralModel_v2('thetas',thetas,'speeds',speeds,'gainNoise',0.5,'sizeProps',sizeProps,...
+NeuralModel_v2('thetas',thetas,'speeds',speeds,'gainNoise',0.3,'sizeProps',sizeProps,...
     'mymakeaxisflg',mymakeaxisflg,'saveOpts',saveOpts)
 
 %% Surround suppression
@@ -75,7 +75,7 @@ NeuralModel_v2('thetas',thetas,'speeds',speeds,'gainNoise',0,'sizeProps',sizePro
 
 % With gain noise
 saveOpts.location = [locationBase '_sursup_gainNoiseOn_' datestr(now,'yyyymmdd')];
-NeuralModel_v2('thetas',thetas,'speeds',speeds,'gainNoise',0.5,'sizeProps',sizeProps,...
+NeuralModel_v2('thetas',thetas,'speeds',speeds,'gainNoise',0.3,'sizeProps',sizeProps,...
     'mymakeaxisflg',mymakeaxisflg,'saveOpts',saveOpts)
 
 %% Independent effect of threshold
@@ -148,9 +148,26 @@ sizeProps.surround_weight = 0;
 sizeProps.exponential = 1;
 sizeProps.threshold = 0;
 Cov.diffAlpha = 0;
-Cov.separationLengthConstant = 0.3;
-Cov.sigf = 0.0001;
+Cov.separationLengthConstant = 0.03;
 % Without noise
-saveOpts.location = [locationBase '_diffCorr040_gainNoiseOff_' datestr(now,'yyyymmdd')];
+saveOpts.location = [locationBase '_sepCons003_gainNoiseOff_' datestr(now,'yyyymmdd')];
 NeuralModel_v2('thetas',thetas,'speeds',speeds,'gainNoise',0,'Cov',Cov,...
     'mymakeaxisflg',mymakeaxisflg,'saveOpts',saveOpts)
+
+%% Vanillia w/ motor noise
+sizeProps.surround_weight = 0;
+sizeProps.exponential = 1;
+sizeProps.threshold = 0;
+Cov.diffAlpha = 0;
+Cov.separationLengthConstant = 0.3;
+motorNoise = 0.1;
+
+% Without gain noise
+saveOpts.location = [locationBase 'motorNoise_gainNoiseOff_' datestr(now,'yyyymmdd')];
+NeuralModel_v2('thetas',thetas,'speeds',speeds,'gainNoise',0,...
+    'mymakeaxisflg',mymakeaxisflg,'saveOpts',saveOpts,'motorNoise',motorNoise)
+
+% With gain noise
+saveOpts.location = [locationBase 'motorNoise_gainNoiseOn_' datestr(now,'yyyymmdd')];
+NeuralModel_v2('thetas',thetas,'speeds',speeds,'gainNoise',0.4,...
+    'mymakeaxisflg',mymakeaxisflg,'saveOpts',saveOpts,'motorNoise',motorNoise)

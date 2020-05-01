@@ -11,11 +11,11 @@ speeds_default = 2.^(linspace(-1,8,20)); %cumprod(2*ones(1,6));
 
 theta_default.range = [-90,90,1800];
 theta_default.Amp = 10;
-theta_default.sig = 100;
+theta_default.sig = 45;
 
 speed_default.range = [-1,8,1000];
 speed_default.Amp = 10;
-speed_default.sig = 1.45;
+speed_default.sig = 1.64;
 speed_default.d = 0.1;
 
 Cov_default.sigf = 0.36;
@@ -43,7 +43,9 @@ addParameter(Parser,'Cov',Cov_default)
 addParameter(Parser,'n0',1)
 addParameter(Parser,'epsilon',0.05)
 addParameter(Parser,'gainNoise',0)
+addParameter(Parser,'motorNoise',0)
 addParameter(Parser,'sizeProps',sizeProps_default)
+addParameter(Parser,'N',NaN)
 addParameter(Parser,'mymakeaxisflg',true)
 addParameter(Parser,'plotMT',true)
 addParameter(Parser,'plotDecoding',true)
@@ -61,7 +63,9 @@ Cov = Parser.Results.Cov;
 n0 = Parser.Results.n0;
 epsilon = Parser.Results.epsilon;
 gainNoise = Parser.Results.gainNoise;
+motorNoise = Parser.Results.motorNoise;
 sizeProps = Parser.Results.sizeProps;
+N = Parser.Results.N;
 mymakeaxisflg = Parser.Results.mymakeaxisflg;
 plotMT = Parser.Results.plotMT;
 plotDecoding = Parser.Results.plotDecoding;
@@ -72,7 +76,9 @@ saveOpts = Parser.Results.saveOpts;
 % fun=@(x1) (1.14*x1.^-0.76); % Albright & Desimone 87 Exp Brain Res (mm/deg)
 fun=@(x1) (6*x1.^-0.9); % Erickson cell density function (mm/deg)
 %N = ceil(20*(integral(fun,sizeProps.minEccentricity,sizeProps.maxEccentricity)+9));  % By Pack Lab. Should probably multiply by 2!!!!!
-N = ceil( 20* ( 6*( 10*sizeProps.maxEccentricity.^(1/10) - 10*sizeProps.minEccentricity.^(1/10) ) + 9 ) ); % Definite integral of cell density function; should probably multiply by 2!!!!!
+if isnan(N)
+    N = ceil( 20* ( 6*( 10*sizeProps.maxEccentricity.^(1/10) - 10*sizeProps.minEccentricity.^(1/10) ) + 9 ) ); % Definite integral of cell density function; should probably multiply by 2!!!!!
+end
 
 %% Initial simulation w/ maximum number of neurons
 % Generate population tuning parameters
@@ -98,7 +104,10 @@ end
 s = cat(3,Ds',Ss');
 
 for szi = 1:length(sizes)
-    [e{szi}, gain{szi}, figureHandles] = DecodeMT(n{szi},tuning,s,'gainNoise',gainNoise,'epsilon',epsilon,'b',normalizer,'mymakeaxisflg',mymakeaxisflg,'plotflg',plotDecoding);
+    [e{szi}, gain{szi}, figureHandles, Rs, PVals] = DecodeMT(n{szi},tuning,s,...
+        'gainNoise',gainNoise,'epsilon',epsilon,'b',normalizer,...
+        'mymakeaxisflg',mymakeaxisflg,'plotflg',plotDecoding,...
+        'motorNoise',motorNoise);
     
     if saveOpts.Figs
         savefig(figureHandles.neuon_est_corr,[saveOpts.location '_MT_pursuit_corr_' num2str(sizes(szi)) ])
@@ -246,7 +255,7 @@ if plotResults
     
     ExInd = ind2; %find(tuning.speed.pref > 15,1);
     figure('Name','Popultion','Position',[440 31 559 767])
-    f = @(x,p)(tuning.theta.Amp * exp( -(x-p).^2 / tuning.theta.sig ));
+    f = @(x,p)(tuning.theta.Amp * exp( -(x-p).^2 / tuning.theta.sig.^2 /2 ));
     x = linspace(-90,90,200);
     randN = 50;
     randInds = randsample(N,randN);
@@ -259,20 +268,26 @@ if plotResults
     xlabel('Direction (deg)')
     ylabel('Spikes/s')
     axis tight
-    mymakeaxis(gca,'xticks',[-90,0,90],'yticks',[0 10])
+    if mymakeaxisflg
+        mymakeaxis(gca,'xticks',[-90,0,90],'yticks',[0 10])
+    end
     
     subplot(4,1,2)
-    x = linspace(2^(tuning.speed.range(1)),2^(tuning.speed.range(2)),200);
+    x = logspace(log10(2^(tuning.speed.range(1))),log10(2^(tuning.speed.range(2))),200);
+%     x = linspace(2^(tuning.speed.range(1)),2^(tuning.speed.range(2)),200);
     f = @(x,p)(tuning.speed.Amp * exp( -(log2(x./p)).^2 / tuning.speed.sig ));
     for ni = 1:randN
         plot(x,f(x,tuning.speed.pref(randInds(ni))),'Color',[0.6 0.6 0.6])
         hold on
     end
-    plot(x,f(x,tuning.speed.pref(ExInd)),'k','LineWidth',2)
-    xlabel('Direction (deg)')
+    plot(x,f(x,tuning.speed.pref(ExInd)),'k','LineWidth',2);
+    set(gca,'XScale','log')
+    xlabel('log(speed)')
     ylabel('Spikes/s')
     axis tight
-    mymakeaxis(gca,'yticks',[0 10])
+    if mymakeaxisflg
+        mymakeaxis(gca,'yticks',[0 10]);
+    end
     
     subplot(4,1,[3,4])
     scatter(tuning.speed.pref,tuning.theta.pref,40,squeeze(n{3}(1,4,20,:)),'filled')
@@ -303,7 +318,7 @@ if plotResults
     %% Gain
     h = figure('Name','Gain vs speed','Position',[26 366 621 387]);
     for szi = 1:length(sizes)
-        plot(speeds,squeeze(mean(gain{szi}(1,:,:),3))/normalizer(1),'o-',...
+        plot(speeds,1e4*squeeze(mean(gain{szi}(1,:,:),3))/normalizer(1),'o-',...
             'Color',szcolors(szi,:),'MarkerFaceColor',szcolors(szi,:))
         hold on
 %         plot(speeds,squeeze(gain{szi}(1,:,randsample(size(gain{szi},3),100))),'o',...

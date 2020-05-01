@@ -1,4 +1,4 @@
-function [e,gain,figureHandles] = DecodeMT(n,tuning,s,varargin)
+function [e,gain,figureHandles, Rs, PVals] = DecodeMT(n,tuning,s,varargin)
 %% DecodeMT
 %
 %
@@ -15,6 +15,7 @@ addRequired(Parser,'tuning')
 addRequired(Parser,'s')
 addParameter(Parser,'epsilon',250)
 addParameter(Parser,'gainNoise',0.1)
+addParameter(Parser,'motorNoise',0)
 addParameter(Parser,'k',0.65)
 addParameter(Parser,'b',[0, 0])
 addParameter(Parser,'gainSDN',false)
@@ -29,6 +30,7 @@ tuning = Parser.Results.tuning;
 s = Parser.Results.s;
 epsilon = Parser.Results.epsilon;
 gainNoise = Parser.Results.gainNoise;
+motorNoise = Parser.Results.motorNoise;
 k = Parser.Results.k;
 b = Parser.Results.b;
 gainSDN = Parser.Results.gainSDN;
@@ -77,6 +79,8 @@ e(:,:,:,1) = temp;
 
 % e(:,:,:,2) = 2.^(sqrt(sum((vA).^2,4)));
 e(:,:,:,2) = 2.^(sqrt(sqrt(sum((vA).^2,4))));
+e(:,:,:,2) = e(:,:,:,2) + ...
+    e(:,:,:,2).*motorNoise.*randn([size(vA,1),size(vA,2),size(vA,3)]);
 
 %% Correlation with MT
 % z-score
