@@ -104,7 +104,7 @@ end
 s = cat(3,Ds',Ss');
 
 for szi = 1:length(sizes)
-    [e{szi}, gain{szi}, figureHandles, Rs, PVals] = DecodeMT(n{szi},tuning,s,...
+    [e{szi}, gain{szi}, figureHandles, Rs{szi}, PVals{szi}] = DecodeMT(n{szi},tuning,s,...
         'gainNoise',gainNoise,'epsilon',epsilon,'b',normalizer,...
         'mymakeaxisflg',mymakeaxisflg,'plotflg',plotDecoding,...
         'motorNoise',motorNoise);
@@ -352,7 +352,7 @@ end
 
 %% Save
 if saveOpts.On
-    save(saveOpts.location)
+    save(saveOpts.location,'-v7.3')
 end
 
 %% Functions
