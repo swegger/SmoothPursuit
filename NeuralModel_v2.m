@@ -84,7 +84,7 @@ end
 % Generate population tuning parameters
 tuning = tuningFunctions(N,theta,speed,Cov,n0,sizeProps);
 
-% Simulate MT and then decode    
+% Simulate MT and then decode
 [nTemp, MTemp, rNNTemp, ~, ~] = DirSpeedSizeLocMT(thetas,speeds,max(sizes),'trialN',400,'tuning',tuning,'plotflg',false);
 
 gainTemp = gainFunction(nTemp(1,:,:,:),tuning,0);
@@ -92,9 +92,9 @@ normalizer = [mean(gainTemp(:))/mean(log2(speeds)), 0]; % For -90 90 theta range
 
 %% Run MT simulations
 for szi = 1:length(sizes)
-    
+
     [n{szi}, M{szi}, rNN{szi}, ~, ~] = DirSpeedSizeLocMT(thetas,speeds,sizes(szi),'trialN',400,'tuning',tuning,'plotflg',plotMT,'mymakeaxisflg',mymakeaxisflg);
-    
+
 end
 
 %% Run decoding simulations
@@ -104,18 +104,18 @@ end
 s = cat(3,Ds',Ss');
 
 for szi = 1:length(sizes)
-    [e{szi}, gain{szi}, figureHandles, Rs{szi}, PVals] = DecodeMT(n{szi},tuning,s,...
+    [e{szi}, gain{szi}, figureHandles, Rs{szi}, PVals{szi}] = DecodeMT(n{szi},tuning,s,...
         'gainNoise',gainNoise,'epsilon',epsilon,'b',normalizer,...
         'mymakeaxisflg',mymakeaxisflg,'plotflg',plotDecoding,...
         'motorNoise',motorNoise);
-    
+
     if saveOpts.Figs
         savefig(figureHandles.neuon_est_corr,[saveOpts.location '_MT_pursuit_corr_' num2str(sizes(szi)) ])
     end
-    
+
     eBar = mean(e{szi},3);
     eVar = var(e{szi},1,3);
-    
+
     VeM(:,:,szi) = squeeze(eBar(:,:,:,2));
     VeVAR(:,:,szi) = squeeze(eVar(:,:,:,2));
 
@@ -144,7 +144,7 @@ if plotResults
     szcolors = [0.8 0.8 0.8;...
         0.5 0.5 0.5;...
         0   0   0];
-    
+
     h = figure('Name','Target v Eye speed','Position',[26 366 621 387]);
     for szi = 1:length(sizes)
         szind = length(sizes)-szi+1;
@@ -163,20 +163,20 @@ if plotResults
     if mymakeaxisflg
         mymakeaxis(gca,'xticks',[0,10,20],'yticks',[0 10 20]);
     end
-    
+
     if saveOpts.Figs
         savefig(h,[saveOpts.location '_targVeye'])
     end
-    
+
     h = figure;
     Ncolors = colormap('lines');
-    
-    
+
+
     Ncolors = [szcolors; Ncolors];
-    
+
     colors = projectColorMaps('speeds','samples',1:length(speeds),...
         'sampleDepth',length(speeds));
-    
+
     % figure
     for di = 1:length(thetas)
         subplot(1,length(thetas),di)
@@ -199,7 +199,7 @@ if plotResults
             xlabel('Mean eye speed (deg/s)')
             ylabel('Eye speed variance (deg/s)^2')
         end
-        
+
         %     ylim([0 3.5])
         axis square
         if mymakeaxisflg
@@ -210,7 +210,7 @@ if plotResults
     if saveOpts.Figs
         savefig(h,[saveOpts.location 'muVvar'])
     end
-    
+
     %% Tuning
     h = figure('Name','MT RF centers','Position',[713 316 1530 420]);
     subplot(1,2,1)
@@ -235,7 +235,7 @@ if plotResults
     if mymakeaxisflg
         mymakeaxis(gca);
     end
-    
+
     subplot(1,2,2)
     for szi = 1:length(sizes)
         plot(sqrt(tuning.size.x.^2+tuning.size.y.^2),squeeze(mean(M{szi},2)),'o')
@@ -246,13 +246,13 @@ if plotResults
             'ko','MarkerFaceColor',[0 0 0])
         plotVertical(sizes(szi)/2);
     end
-    
+
     xlabel('Eccentricity (deg)')
     ylabel('Mean response')
     if mymakeaxisflg
         mymakeaxis(gca);
     end
-    
+
     ExInd = ind2; %find(tuning.speed.pref > 15,1);
     figure('Name','Popultion','Position',[440 31 559 767])
     f = @(x,p)(tuning.theta.Amp * exp( -(x-p).^2 / tuning.theta.sig.^2 /2 ));
@@ -271,7 +271,7 @@ if plotResults
     if mymakeaxisflg
         mymakeaxis(gca,'xticks',[-90,0,90],'yticks',[0 10])
     end
-    
+
     subplot(4,1,2)
     x = logspace(log10(2^(tuning.speed.range(1))),log10(2^(tuning.speed.range(2))),200);
 %     x = linspace(2^(tuning.speed.range(1)),2^(tuning.speed.range(2)),200);
@@ -288,7 +288,7 @@ if plotResults
     if mymakeaxisflg
         mymakeaxis(gca,'yticks',[0 10]);
     end
-    
+
     subplot(4,1,[3,4])
     scatter(tuning.speed.pref,tuning.theta.pref,40,squeeze(n{3}(1,4,20,:)),'filled')
     hold on
@@ -305,7 +305,7 @@ if plotResults
     xlabel('log(Pref speed)')
     ylabel('Pref direction')
     % mymakeaxis(gca,'xticks',[1,2,4,8,16,32,64,128])
-    
+
     % figure('Name','Noise correlation')
     % imagesc(1:length(tuning.theta.pref),1:length(tuning.theta.pref),rNN{3} - diag(diag(rNN{3})))
     % colormap gray
@@ -314,7 +314,7 @@ if plotResults
     % xlabel('Neuron i')
     % ylabel('Neuron j')
     % colorbar
-    
+
     %% Gain
     h = figure('Name','Gain vs speed','Position',[26 366 621 387]);
     for szi = 1:length(sizes)
@@ -331,11 +331,11 @@ if plotResults
     if mymakeaxisflg
         mymakeaxis(gca,'xticks',[0,10,20]);
     end
-    
+
     %% Example correlation
     zE = (squeeze(e{3}(1,4,:,2))-mean(squeeze(e{3}(1,4,:,2))))/std(squeeze(e{3}(1,4,:,2)));
     zN = (squeeze(n{3}(1,4,:,ind2))-mean(squeeze(n{3}(1,4,:,ind2))))/std(squeeze(n{3}(1,4,:,ind2)));
-    
+
     figure('Name','Neuron estimate correlation')
     scatter(zN,zE,80,[0 0 0],'filled')
     hold on
@@ -346,13 +346,13 @@ if plotResults
     plotVertical(0);
     xlabel('z-score (neuron)')
     ylabel('z-score (pursuit)')
-    
+
     mymakeaxis(gca)
 end
 
 %% Save
 if saveOpts.On
-    save(saveOpts.location)
+    save(saveOpts.location,'-v7.3')
 end
 
 %% Functions
@@ -365,25 +365,25 @@ function eccentricities = sampleEccentricities(N,minEccentricity,maxEccentricity
     foveaMin = 0.25;
     eccentricities = [(1-foveaMin)*rand(foveaN,1)+foveaMin; ...
         eccentricities];
-    
+
     eccentricities = randsample(eccentricities,N);
 
 %% tuningFunctions
 function tuning = tuningFunctions(N,theta,speed,Cov,n0,sizeProps)
 
     thetas = linspace(theta.range(1),theta.range(2),theta.range(3));
-    speeds = 2.^(linspace(speed.range(1),speed.range(2),speed.range(3))); 
+    speeds = 2.^(linspace(speed.range(1),speed.range(2),speed.range(3)));
 
     A(:,1) = randsample(thetas,N,true);
     A(:,2) = randsample(speeds,N,true);
     B = sortrows(A,[2,1]);
-    
+
     tuning.theta = theta;
     tuning.theta.pref = B(:,1);
-    
+
     tuning.speed = speed;
     tuning.speed.pref = B(:,2);
-    
+
     eccentricities = sampleEccentricities(N,sizeProps.minEccentricity,sizeProps.maxEccentricity);
     rhos = 2*pi*rand(N,1);
     tuning.size.x = eccentricities.*cos(rhos);
@@ -405,11 +405,11 @@ function tuning = tuningFunctions(N,theta,speed,Cov,n0,sizeProps)
     else
         tuning.size.surround_weight = zeros(N,1);
     end
-    
+
     tuning.n0 = n0;
-    
+
     tuning.Cov = Cov;
-    
+
 %% fit_gainSDN
 function [w, sigG] = fit_gainSDN(speeds,VeM,VeVAR,w0,sigG0,OPTIONS)
     %%
@@ -417,12 +417,12 @@ function [w, sigG] = fit_gainSDN(speeds,VeM,VeVAR,w0,sigG0,OPTIONS)
     p = fmincon(minimizer,[w0 sigG0],[],[],[],[],[0,0],[Inf,Inf],[],OPTIONS);
     w = p(1);
     sigG = p(2);
-    
+
 %% gainSDN
 function v = gainSDN(ve,vs,w,sigG)
     %%
     v = w.^2.*ve.^2 + (sigG.^2 + sigG.^2.*w.^2).*vs.^2;
-    
+
 %% gainFunction
 function out = gainFunction(n,tuning,gainNoise)
     %%
