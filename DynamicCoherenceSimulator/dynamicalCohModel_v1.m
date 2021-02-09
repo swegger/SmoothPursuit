@@ -30,6 +30,9 @@ Sequences_default = [60*ones(1,45), 100*ones(1,30), 20*ones(1,30), 60*ones(1,30)
     60*ones(1,45), 60*ones(1,30), 60*ones(1,30), 60*ones(1,30)];
 cohFunction_default = @(x)(x);
 
+loadMT_default.On = true;
+loadMT_default.filename = 'defaultMT_dynCohModel_v1';
+
 %% Parse inputs
 Parser = inputParser;
 
@@ -43,8 +46,10 @@ addParameter(Parser,'Cov',Cov_default)
 addParameter(Parser,'n0',1)
 addParameter(Parser,'epsilon',500)
 addParameter(Parser,'N',100)
+addParameter(Parser,'Nfef',10)
 addParameter(Parser,'trialN',400)
 addParameter(Parser,'mymakeaxisflg',true)
+addParameter(Parser,'loadMT',loadMT_default)
 
 parse(Parser,varargin{:})
 
@@ -58,8 +63,10 @@ Cov = Parser.Results.Cov;
 n0 = Parser.Results.n0;
 epsilon = Parser.Results.epsilon;
 N = Parser.Results.N;
+Nfef = Parser.Results.Nfef;
 trialN = Parser.Results.trialN;
 mymakeaxisflg = Parser.Results.mymakeaxisflg;
+loadMT = Parser.Results.loadMT;
 
 %% Generate population sizes
 % fun=@(x1) (1.14*x1.^-0.76); % Albright & Desimone 87 Exp Brain Res (mm/deg)
@@ -68,54 +75,64 @@ mymakeaxisflg = Parser.Results.mymakeaxisflg;
 %     N = ceil(20*(integral(fun,0.5,sizes(szi))+9));
 % end
 
-%% Generate baseline tuning functions for MT neurons
-tuning_orig = tuningFunctions(N,theta,speed,Cov,n0);
+%% Generate MT neuron responses
 
-%% Run simulations
-for seqi = 1:size(Sequences,1)
-    disp(seqi)
-    Coherence = Sequences(seqi,:);
-    ampMultiplier = cohFunction(Coherence)/100;
-    for ti = 1:length(Coherence)
-        
-        % Generate population tuning parameters
-        tuning = tuning_orig;
-        tuning.theta.Amp = theta.Amp*ampMultiplier(ti);
-        
-        % Decoder properties
-        [Ds,Ss] = meshgrid(thetas,speeds);
-        s = cat(3,Ds',Ss');
-        
-        % Simulate MT and then decode
-        [n, M, rNN, ~, tuning] = SimpleMT(thetas,speeds,'trialN',trialN,...
-            'tuning',tuning,'plotflg',false,'mymakeaxisflg',mymakeaxisflg);
-        nMT(:,:,:,:,ti,seqi) = n;
+if loadMT.On
+    load(loadMT.filename)
+else
+    tuning_orig = tuningFunctions(N,theta,speed,Cov,n0);
+    
+    %% Run simulations
+    for seqi = 1:size(Sequences,1)
+        disp(seqi)
+        Coherence = Sequences(seqi,:);
+        ampMultiplier = cohFunction(Coherence)/100;
+        for ti = 1:length(Coherence)
+            
+            % Generate population tuning parameters
+            tuning = tuning_orig;
+            tuning.theta.Amp = theta.Amp*ampMultiplier(ti);
+            
+            % Decoder properties
+            [Ds,Ss] = meshgrid(thetas,speeds);
+            s = cat(3,Ds',Ss');
+            
+            % Simulate MT and then decode
+            [n, M, rNN, ~, tuning] = SimpleMT(thetas,speeds,'trialN',trialN,...
+                'tuning',tuning,'plotflg',false,'mymakeaxisflg',mymakeaxisflg);
+            nMT(:,:,:,:,ti,seqi) = n;
+        end
     end
 end
 
 %% Model FEF response
 alpha = 0.07;
 a = 0.0003;
-b = 0.0001;
-c = 1;
+b = 0.00025;
+c = 0.05;
 tau = 1/alpha;
+tau2 = tau;
+atemp = a + 0*randn(Nfef,1);
+btemp = b + 0*randn(Nfef,1);
+%%
+
 for seqi = 1:size(Sequences,1)
-    for ti = 1:length(Coherence)
+    for ti = 1:size(Sequences,2)
         if ti == 1
-            z(ti,:,seqi) = epsilon*ones(1,trialN);%zeros(trialN,1);%1./(tuning.speed.pref' * permute(nMT(:,:,:,:,ti),[4,3,1,2]));
-            nFEF(ti,:,seqi) = zeros(1,trialN);%(tuning.speed.pref' * permute(nMT(:,:,:,:,ti),[4,3,1,2]));
+            z(ti,:,seqi) = zeros(trialN,1);%1./(tuning.speed.pref' * permute(nMT(:,:,:,:,ti),[4,3,1,2]));% epsilon*ones(1,trialN);%
+            nFEF(ti,:,seqi,:) = zeros(1,trialN,Nfef);%(tuning.speed.pref' * permute(nMT(:,:,:,:,ti),[4,3,1,2]));
             
-            dFEF(ti,:,seqi) = deltaFEF(nFEF(ti,:,seqi),nMT(:,:,:,:,ti,seqi),...
-                z(ti,:,seqi),a,b,tuning);
-            dz(ti,:,seqi) = deltaZ(nMT(:,:,:,:,ti,seqi),z(ti,:,seqi),c,tuning);
+            dFEF(ti,:,seqi,:) = deltaFEF(nFEF(ti,:,seqi,:),nMT(:,:,:,:,ti,seqi),...
+                z(ti,:,seqi),atemp,btemp,tuning);
+            dz(ti,:,seqi) = deltaZ(nMT(:,:,:,:,ti,seqi),nFEF(ti,:,seqi,:),z(ti,:,seqi),c,tuning);
         else
             
-            nFEF(ti,:,seqi) = nFEF(ti-1,:,seqi) + dFEF(ti-1,:,seqi)/tau;
-            z(ti,:,seqi) = z(ti-1,:,seqi) + dz(ti-1,:,seqi)/tau;
+            nFEF(ti,:,seqi,:) = nFEF(ti-1,:,seqi,:) + dFEF(ti-1,:,seqi,:)/tau;
+            z(ti,:,seqi) = z(ti-1,:,seqi) + dz(ti-1,:,seqi)/tau2;
             
-            dFEF(ti,:,seqi) = deltaFEF(nFEF(ti,:,seqi),nMT(:,:,:,:,ti,seqi),...
-                z(ti,:,seqi),a,b,tuning);
-            dz(ti,:,seqi) = deltaZ(nMT(:,:,:,:,ti,seqi),z(ti,:,seqi),c,tuning);
+            dFEF(ti,:,seqi,:) = deltaFEF(nFEF(ti,:,seqi,:),nMT(:,:,:,:,ti,seqi),...
+                z(ti,:,seqi),atemp,btemp,tuning);
+            dz(ti,:,seqi) = deltaZ(nMT(:,:,:,:,ti,seqi),nFEF(ti,:,seqi,:),z(ti,:,seqi),c,tuning);
         end
     end
 end
@@ -133,7 +150,7 @@ end
 
 for seqi = 1:size(Sequences,1)
     subplot(2,size(Sequences,1),size(Sequences,1)+seqi)
-    plotyy(1:size(Sequences,2),mean(nFEF(:,:,seqi),2),...
+    plotyy(1:size(Sequences,2),mean(nFEF(:,:,seqi,6),2),...
         1:size(Sequences,2),mean(z(:,:,seqi),2))
     xlabel('time')
 end
@@ -141,19 +158,30 @@ end
 figure('Name','Sequence response comparison','Position',[1000 855 1179 474])
 controlSeq = 5;
 for seqi = 1:size(Sequences,1)
-    subplot(2,2,1)
-    plot(1:size(Sequences,2),mean(nFEF(:,:,seqi),2))
+    subplot(4,2,1)
+    plot(1:size(Sequences,2),mean(nFEF(:,:,seqi,1),2))
     hold on
     xlabel('time')
     
-    subplot(2,2,3)
-    plot(1:size(Sequences,2),mean(nFEF(:,:,seqi),2)-mean(nFEF(:,:,controlSeq),2))
+    subplot(4,2,3)
+    plot(1:size(Sequences,2),mean(nFEF(:,:,seqi,1),2)-mean(nFEF(:,:,controlSeq,1),2))
     hold on
     xlabel('time')
     ylabel('Response minus cotnrol sequence')
     
-    subplot(2,2,[2,4])
-    plot(mean(nFEF(:,:,seqi),2),mean(z(:,:,seqi),2),'.-')
+    subplot(4,2,5)
+    plot(1:size(Sequences,2),mean(z(:,:,seqi),2))
+    hold on
+    xlabel('time')
+    
+    subplot(4,2,7)
+    plot(1:size(Sequences,2),mean(z(:,:,seqi),2)-mean(z(:,:,controlSeq),2))
+    hold on
+    xlabel('time')
+    ylabel('Response minus cotnrol sequence')
+    
+    subplot(4,2,[2,4,6,8])
+    plot(mean(nFEF(:,:,seqi,6),2),mean(z(:,:,seqi),2),'.-')
     hold on
     xlabel('nFEF')
     ylabel('z')
@@ -186,11 +214,17 @@ function tuning = tuningFunctions(N,theta,speed,Cov,n0)
 % dFEF
 function out = deltaFEF(nFEF,nMT,z,a,b,tuning)
     out = -nFEF +...
-        a*( (tuning.speed.pref' * permute(nMT(:,:,:,:),[4,3,1,2])) ) - ...
-        b*( (z + (tuning.speed.pref' * permute(nMT(:,:,:,:),[4,3,1,2])) ) );
+        permute(a,[4,2,3,1]).*( (tuning.speed.pref' * permute(nMT(:,:,:,:),[4,3,1,2])) ) - ...
+        permute(b,[4,2,3,1]).*( (z + (tuning.speed.pref' * permute(nMT(:,:,:,:),[4,3,1,2])) ) );
     
 % dz
-function out = deltaZ(nMT,z,c,tuning)
+function out = deltaZ(nMT,nFEF,z,c,tuning)
+    out = -z + c*( (tuning.speed.pref' * permute(nMT(:,:,:,:),[4,3,1,2]))./...
+        0.5 + ones(size(tuning.speed.pref')) * permute(nMT(:,:,:,:),[4,3,1,2]).*...
+        sum(nFEF,4));
+    
+% dz2
+function out = deltaZ2(nMT,z,c,tuning)
     out = -z + c*( (tuning.speed.pref' * permute(nMT(:,:,:,:),[4,3,1,2])) );
     
     

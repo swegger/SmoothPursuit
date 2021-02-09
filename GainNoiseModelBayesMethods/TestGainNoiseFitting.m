@@ -37,7 +37,8 @@ switch modelparams.variant
     case 'simple'
         [s, m, c] = SimulateGainNoiseModel(ws,gains,sigma,0,'trials',trialN);
         g = gains(c)';
-    
+        b = 0;
+        
     case 'flexible_ws_constrained_g'
         s = [];
         m = [];
