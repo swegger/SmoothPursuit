@@ -46,6 +46,7 @@ addParameter(Parser,'gainNoise',0)
 addParameter(Parser,'motorNoise',0)
 addParameter(Parser,'sizeProps',sizeProps_default)
 addParameter(Parser,'N',NaN)
+addParameter(Parser,'decoderAlgorithm','bioRxiv2020')
 addParameter(Parser,'mymakeaxisflg',true)
 addParameter(Parser,'plotMT',true)
 addParameter(Parser,'plotDecoding',true)
@@ -66,6 +67,7 @@ gainNoise = Parser.Results.gainNoise;
 motorNoise = Parser.Results.motorNoise;
 sizeProps = Parser.Results.sizeProps;
 N = Parser.Results.N;
+decoderAlgorithm = Parser.Results.decoderAlgorithm;
 mymakeaxisflg = Parser.Results.mymakeaxisflg;
 plotMT = Parser.Results.plotMT;
 plotDecoding = Parser.Results.plotDecoding;
@@ -87,9 +89,21 @@ tuning = tuningFunctions(N,theta,speed,Cov,n0,sizeProps);
 % Simulate MT and then decode
 [nTemp, MTemp, rNNTemp, ~, ~] = DirSpeedSizeLocMT(thetas,speeds,max(sizes),'trialN',400,'tuning',tuning,'plotflg',false);
 
-gainTemp = gainFunction(nTemp(1,:,:,:),tuning,0);
-normalizer = [mean(gainTemp(:))/mean(log2(speeds)), 0]; % For -90 90 theta range
-
+[Ds,Ss] = meshgrid(thetas,speeds);
+s = cat(3,Ds',Ss');
+switch decoderAlgorithm
+    case {'bioRxiv2020', 'simpleSumVA^2', 'simpleSumVA^2'}
+        gainTemp = gainFunction(nTemp(1,:,:,:),tuning,0);
+        normalizer = [mean(gainTemp(:))/mean(log2(speeds)), 0]; % For -90 90 theta range
+        
+    otherwise
+        [e_temp, gain_temp] = DecodeMT(nTemp,tuning,s,...
+            'gainNoise',0,'epsilon',epsilon,'b',[1 0],'decoderAlgorithm',decoderAlgorithm,...
+            'mymakeaxisflg',false,'plotflg',false,...
+            'motorNoise',motorNoise);
+        normalizer = [mean(e_temp(:))/5, 0];
+end
+    
 %% Run MT simulations
 for szi = 1:length(sizes)
 
@@ -100,12 +114,12 @@ end
 %% Run decoding simulations
 
 % Decoder properties
-[Ds,Ss] = meshgrid(thetas,speeds);
-s = cat(3,Ds',Ss');
+% [Ds,Ss] = meshgrid(thetas,speeds);
+% s = cat(3,Ds',Ss');
 
 for szi = 1:length(sizes)
     [e{szi}, gain{szi}, figureHandles, Rs{szi}, PVals{szi}] = DecodeMT(n{szi},tuning,s,...
-        'gainNoise',gainNoise,'epsilon',epsilon,'b',normalizer,...
+        'gainNoise',gainNoise,'epsilon',epsilon,'b',normalizer,'decoderAlgorithm',decoderAlgorithm,...
         'mymakeaxisflg',mymakeaxisflg,'plotflg',plotDecoding,...
         'motorNoise',motorNoise);
 
@@ -255,16 +269,36 @@ if plotResults
 
     ExInd = ind2; %find(tuning.speed.pref > 15,1);
     figure('Name','Popultion','Position',[440 31 559 767])
-    f = @(x,p)(tuning.theta.Amp * exp( -(x-p).^2 / tuning.theta.sig.^2 /2 ));
-    x = linspace(-90,90,200);
+%     f = @(x,p)(tuning.theta.Amp .* exp( -(x-p).^2 ./ tuning.theta.sig.^2 /2 ));
+    x = linspace(tuning.theta.range(1),tuning.theta.range(2),200);
     randN = 50;
     randInds = randsample(N,randN);
     subplot(4,1,1)
     for ni = 1:randN
-        plot(x,f(x,tuning.theta.pref(randInds(ni))),'Color',[0.6 0.6 0.6])
+        if length(tuning.theta.Amp) > 1
+            f = tuning.theta.Amp(randInds(ni)) .* ...
+                exp( -(x-tuning.theta.pref(randInds(ni))).^2 ./ ...
+                tuning.theta.sig(randInds(ni)).^2 /2 );
+        else
+            f = tuning.theta.Amp .* ...
+                exp( -(x-tuning.theta.pref(randInds(ni))).^2 ./ ...
+                tuning.theta.sig.^2 /2 );
+        end
+        plot(x,f,'Color',[0.6 0.6 0.6])
+%         plot(x,f(x,tuning.theta.pref(randInds(ni))),'Color',[0.6 0.6 0.6])
         hold on
     end
-    plot(x,f(x,tuning.theta.pref(ExInd)),'k','LineWidth',2)
+    if length(tuning.theta.Amp) > 1
+        f = tuning.theta.Amp(ExInd) .* ...
+            exp( -(x-tuning.theta.pref(ExInd)).^2 ./ ...
+            tuning.theta.sig(ExInd).^2 /2 );
+    else
+        f = tuning.theta.Amp .* ...
+            exp( -(x-tuning.theta.pref(ExInd)).^2 ./ ...
+            tuning.theta.sig.^2 /2 );
+    end
+    plot(x,f,'k','LineWidth',2)
+%     plot(x,f(x,tuning.theta.pref(ExInd)),'k','LineWidth',2)
     xlabel('Direction (deg)')
     ylabel('Spikes/s')
     axis tight
@@ -275,12 +309,33 @@ if plotResults
     subplot(4,1,2)
     x = logspace(log10(2^(tuning.speed.range(1))),log10(2^(tuning.speed.range(2))),200);
 %     x = linspace(2^(tuning.speed.range(1)),2^(tuning.speed.range(2)),200);
-    f = @(x,p)(tuning.speed.Amp * exp( -(log2(x./p)).^2 / tuning.speed.sig ));
+%     f = @(x,p)(tuning.speed.Amp .* exp( -(log2(x./p)).^2 ./ tuning.speed.sig ));
     for ni = 1:randN
-        plot(x,f(x,tuning.speed.pref(randInds(ni))),'Color',[0.6 0.6 0.6])
+        if length(tuning.speed.Amp) > 1
+            f = tuning.speed.Amp(randInds(ni)) .* ...
+                exp( -(log2(x./tuning.speed.pref(randInds(ni)))).^2 ./ ...
+                tuning.speed.sig(randInds(ni)) );
+        else
+            f = tuning.speed.Amp .* ...
+                exp( -(log2(x./tuning.speed.pref(randInds(ni)))).^2 ./ ...
+                tuning.speed.sig );
+        end
+        plot(x,f,'Color',[0.6 0.6 0.6])
+%         plot(x,f(x,tuning.speed.pref(randInds(ni))),'Color',[0.6 0.6 0.6])
         hold on
     end
-    plot(x,f(x,tuning.speed.pref(ExInd)),'k','LineWidth',2);
+    if length(tuning.speed.Amp) > 1
+        f = tuning.speed.Amp(ExInd) .* ...
+            exp( -(log2(x./tuning.speed.pref(ExInd))).^2 ./ ...
+            tuning.speed.sig(ExInd) );
+    else
+        f = tuning.speed.Amp .* ...
+            exp( -(log2(x./tuning.speed.pref(ExInd))).^2 ./ ...
+            tuning.speed.sig );
+    end
+        
+    plot(x,f,'k','LineWidth',2);
+%     plot(x,f(x,tuning.speed.pref(ExInd)),'k','LineWidth',2);
     set(gca,'XScale','log')
     xlabel('log(speed)')
     ylabel('Spikes/s')
@@ -380,9 +435,37 @@ function tuning = tuningFunctions(N,theta,speed,Cov,n0,sizeProps)
 
     tuning.theta = theta;
     tuning.theta.pref = B(:,1);
+    if isfield(theta,'widthRange')
+        dirwidths = linspace(theta.widthRange(1),theta.widthRange(2),theta.widthRange(3));
+        if length(dirwidths) == 1
+            dirwidths = dirwidths*ones(N,1);
+        end
+        tuning.theta.sig(:,1) = randsample(dirwidths,N,true);
+    end
+    if isfield(theta,'amplitudeRange')
+        amps = linspace(theta.amplitudeRange(1),theta.amplitudeRange(2),theta.amplitudeRange(3));
+        if length(amps) == 1
+            amps = amps*ones(N,1);
+        end
+        tuning.theta.Amp(:,1) = randsample(amps,N,true);
+    end
 
     tuning.speed = speed;
     tuning.speed.pref = B(:,2);
+    if isfield(speed,'widthRange')
+        speedwidths = linspace(speed.widthRange(1),speed.widthRange(2),speed.widthRange(3));
+        if length(speedwidths) == 1
+            speedwidths = speedwidths*ones(N,1);
+        end
+        tuning.speed.sig(:,1) = randsample(speedwidths,N,true);
+    end
+    if isfield(speed,'amplitudeRange')
+        amps = linspace(speed.amplitudeRange(1),speed.amplitudeRange(2),speed.amplitudeRange(3));
+        if length(amps) == 1
+            amps = amps*ones(N,1);
+        end
+        tuning.speed.Amp(:,1) = randsample(amps,N,true);
+    end
 
     eccentricities = sampleEccentricities(N,sizeProps.minEccentricity,sizeProps.maxEccentricity);
     rhos = 2*pi*rand(N,1);

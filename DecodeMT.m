@@ -20,6 +20,7 @@ addParameter(Parser,'k',0.65)
 addParameter(Parser,'b',[0, 0])
 addParameter(Parser,'gainSDN',false)
 addParameter(Parser,'pool',NaN)
+addParameter(Parser,'decoderAlgorithm','bioRxiv2020')
 addParameter(Parser,'plotflg',true)
 addParameter(Parser,'mymakeaxisflg',false)
 
@@ -35,6 +36,7 @@ k = Parser.Results.k;
 b = Parser.Results.b;
 gainSDN = Parser.Results.gainSDN;
 pool = Parser.Results.pool;
+decoderAlgorithm = Parser.Results.decoderAlgorithm;
 plotflg = Parser.Results.plotflg;
 mymakeaxisflg = Parser.Results.mymakeaxisflg;
 
@@ -47,40 +49,241 @@ end
 
 %% Decode trial-by-trial population responses
 n(n<0) = 0;
-numerator = vectorAverage(n,tuning,pool);
-denominator = (epsilon + sum(n(:,:,:,dpool),4));
-% denominator = epsilon + sqrt(sum(huangAndLisberger(n,tuning,dpool).^2,4));
-
-% Darlington et. al. 2018
-% gain = (gainFunction(n,tuning,0) + b(1))./(sum(n,4) + b(2));
-
-% Multisize
-gain = gainFunction(n,tuning,0)./b(1);
-% gain = gainFunction(n,tuning,0)./sum(n,4) * (1+(1-tuning.Cov.sigf)*size(n,4))/b(1);
-% gain = sqrt(1+(1-tuning.Cov.sigf)*size(n,4))/b(1);
-% gain = sqrt(sum(n,4))/b(1);
-
-if gainSDN
-    gain = gain + ...
-        gainNoise*gain.*randn([size(n,1),size(n,2),size(n,3)]);
-else
-    gain = gain + ...
-        gainNoise*randn([size(n,1),size(n,2),size(n,3)]);
-end
+switch decoderAlgorithm
+    case 'bioRxiv2020'
+        numerator = vectorAverage(n,tuning,pool); 
+        denominator = (epsilon + sum(n(:,:,:,dpool),4));
+        gain = gainFunction(n,tuning,0)./b(1);
+        
+        if gainSDN
+            gain = gain + ...
+                gainNoise*gain.*randn([size(n,1),size(n,2),size(n,3)]);
+        else
+            gain = gain + ...
+                gainNoise*randn([size(n,1),size(n,2),size(n,3)]);
+        end
+        
+        vA = repmat(gain,[1,1,1,2]).*numerator./repmat(denominator,[1,1,1,2]);
+        temp = atan2d(vA(:,:,:,2),vA(:,:,:,1));
+        e(:,:,:,1) = temp;
+        e(:,:,:,2) = 2.^(sqrt(sqrt(sum((vA).^2,4))));
+        e(:,:,:,2) = e(:,:,:,2) + ...
+            e(:,:,:,2).*motorNoise.*randn([size(vA,1),size(vA,2),size(vA,3)]);
+        
+    case 'ignoreDirection'
+        for thetai = 1:size(n,1)
+            for speedi = 1:size(n,2)
+                numerator(thetai,speedi,:,1) = log2(tuning.speed.pref(pool))' ...
+                    * permute(n(thetai,speedi,:,pool),[4,3,1,2]);
+            end
+        end
+        numerator = repmat(numerator,[1,1,1,2]);
+        denominator = (epsilon + sum(n(:,:,:,dpool),4));
+        gain = gainFunction(n,tuning,0)./b(1);
+        
+        if gainSDN
+            gain = gain + ...
+                gainNoise*gain.*randn([size(n,1),size(n,2),size(n,3)]);
+        else
+            gain = gain + ...
+                gainNoise*randn([size(n,1),size(n,2),size(n,3)]);
+        end
+        
+        vA = repmat(gain,[1,1,1,2]).*numerator./repmat(denominator,[1,1,1,2]);
+        temp = atan2d(vA(:,:,:,2),vA(:,:,:,1));
+        e(:,:,:,1) = temp;
+        e(:,:,:,2) = 2.^(sqrt(sqrt(sum((vA).^2,4))));
+        e(:,:,:,2) = e(:,:,:,2) + ...
+            e(:,:,:,2).*motorNoise.*randn([size(vA,1),size(vA,2),size(vA,3)]);
+        
+    case 'huangAndLisberger'
+        numerator = vectorAverage(n,tuning,pool); 
+        denominator = epsilon + sqrt(sum(huangAndLisberger(n,tuning,dpool).^2,4));
+        
+        gain = gainFunction(n,tuning,0)./b(1);
+        
+        if gainSDN
+            gain = gain + ...
+                gainNoise*gain.*randn([size(n,1),size(n,2),size(n,3)]);
+        else
+            gain = gain + ...
+                gainNoise*randn([size(n,1),size(n,2),size(n,3)]);
+        end
+        
+        vA = repmat(gain,[1,1,1,2]).*numerator./repmat(denominator,[1,1,1,2]);
+        temp = atan2d(vA(:,:,:,2),vA(:,:,:,1));
+        e(:,:,:,1) = temp;
+        e(:,:,:,2) = 2.^(sqrt(sqrt(sum((vA).^2,4))));
+        e(:,:,:,2) = e(:,:,:,2) + ...
+            e(:,:,:,2).*motorNoise.*randn([size(vA,1),size(vA,2),size(vA,3)]);
+        
+    case 'Darlington2018'
+        numerator = vectorAverage(n,tuning,pool);
+        denominator = (epsilon + sum(n(:,:,:,dpool),4));
+        
+        gain = (gainFunction(n,tuning,0) + b(1))./(sum(n,4) + b(2));
+        
+        if gainSDN
+            gain = gain + ...
+                gainNoise*gain.*randn([size(n,1),size(n,2),size(n,3)]);
+        else
+            gain = gain + ...
+                gainNoise*randn([size(n,1),size(n,2),size(n,3)]);
+        end
+        
+        vA = repmat(gain,[1,1,1,2]).*numerator./repmat(denominator,[1,1,1,2]);
+        temp = atan2d(vA(:,:,:,2),vA(:,:,:,1));
+        e(:,:,:,1) = temp;
+        e(:,:,:,2) = 2.^(sqrt(sqrt(sum((vA).^2,4))));
+        e(:,:,:,2) = e(:,:,:,2) + ...
+            e(:,:,:,2).*motorNoise.*randn([size(vA,1),size(vA,2),size(vA,3)]);
+        
+    case 'gainConstant'
+        numerator = vectorAverage(n,tuning,pool);
+        denominator = (epsilon + sum(n(:,:,:,dpool),4));
+        
+        gain = 1;
+        
+        if gainSDN
+            gain = gain + ...
+                gainNoise*gain.*randn([size(n,1),size(n,2),size(n,3)]);
+        else
+            gain = gain + ...
+                gainNoise*randn([size(n,1),size(n,2),size(n,3)]);
+        end
+        
+        vA = repmat(gain,[1,1,1,2]).*numerator./repmat(denominator,[1,1,1,2]);
+        temp = atan2d(vA(:,:,:,2),vA(:,:,:,1));
+        e(:,:,:,1) = temp;
+        e(:,:,:,2) = 2.^(sqrt(sqrt(sum((vA).^2,4))));
+        e(:,:,:,2) = e(:,:,:,2) + ...
+            e(:,:,:,2).*motorNoise.*randn([size(vA,1),size(vA,2),size(vA,3)]);
     
-%gain = 1;
-
-vA = repmat(gain,[1,1,1,2]).*numerator./repmat(denominator,[1,1,1,2]);
-temp = atan2d(vA(:,:,:,2),vA(:,:,:,1));
-% temp(temp < 0) = temp(temp < 0) + 360;
-e(:,:,:,1) = temp;
-
-% e(:,:,:,2) = sum((vA).^2,4);
-
-% e(:,:,:,2) = 2.^(sqrt(sum((vA).^2,4)));
-e(:,:,:,2) = 2.^(sqrt(sqrt(sum((vA).^2,4))));
-e(:,:,:,2) = e(:,:,:,2) + ...
-    e(:,:,:,2).*motorNoise.*randn([size(vA,1),size(vA,2),size(vA,3)]);
+    case 'singleSqrt'
+        numerator = vectorAverage(n,tuning,pool); 
+        denominator = (epsilon + sum(n(:,:,:,dpool),4));
+        gain = gainFunction(n,tuning,0)./b(1);
+        
+        if gainSDN
+            gain = gain + ...
+                gainNoise*gain.*randn([size(n,1),size(n,2),size(n,3)]);
+        else
+            gain = gain + ...
+                gainNoise*randn([size(n,1),size(n,2),size(n,3)]);
+        end
+        
+        vA = repmat(gain,[1,1,1,2]).*numerator./repmat(denominator,[1,1,1,2]);
+        temp = atan2d(vA(:,:,:,2),vA(:,:,:,1));
+        e(:,:,:,1) = temp;
+        e(:,:,:,2) = 2.^(sqrt(sum((vA).^2,4)));
+        e(:,:,:,2) = e(:,:,:,2) + ...
+            e(:,:,:,2).*motorNoise.*randn([size(vA,1),size(vA,2),size(vA,3)]);
+        
+    case 'simpleSumVA^2'
+        numerator = vectorAverage(n,tuning,pool); 
+        denominator = (epsilon + sum(n(:,:,:,dpool),4));
+        gain = gainFunction(n,tuning,0)./b(1);
+        
+        if gainSDN
+            gain = gain + ...
+                gainNoise*gain.*randn([size(n,1),size(n,2),size(n,3)]);
+        else
+            gain = gain + ...
+                gainNoise*randn([size(n,1),size(n,2),size(n,3)]);
+        end
+        
+        vA = repmat(gain,[1,1,1,2]).*numerator./repmat(denominator,[1,1,1,2]);
+        temp = atan2d(vA(:,:,:,2),vA(:,:,:,1));
+        e(:,:,:,1) = temp;
+        e(:,:,:,2) = sum((vA).^2,4);
+        e(:,:,:,2) = e(:,:,:,2) + ...
+            e(:,:,:,2).*motorNoise.*randn([size(vA,1),size(vA,2),size(vA,3)]);
+        
+    case 'simpleSumVA'
+        numerator = vectorAverage(n,tuning,pool); 
+        denominator = (epsilon + sum(n(:,:,:,dpool),4));
+        gain = gainFunction(n,tuning,0)./b(1);
+        
+        if gainSDN
+            gain = gain + ...
+                gainNoise*gain.*randn([size(n,1),size(n,2),size(n,3)]);
+        else
+            gain = gain + ...
+                gainNoise*randn([size(n,1),size(n,2),size(n,3)]);
+        end
+        
+        vA = repmat(gain,[1,1,1,2]).*numerator./repmat(denominator,[1,1,1,2]);
+        temp = atan2d(vA(:,:,:,2),vA(:,:,:,1));
+        e(:,:,:,1) = temp;
+        e(:,:,:,2) = sum((vA),4);
+        e(:,:,:,2) = e(:,:,:,2) + ...
+            e(:,:,:,2).*motorNoise.*randn([size(vA,1),size(vA,2),size(vA,3)]);
+        
+    case 'g*log2shat'
+        numerator = vectorAverage(n,tuning,pool); 
+        denominator = (epsilon + sum(n(:,:,:,dpool),4));
+        gain = gainFunction(n,tuning,0)./b(1);
+        
+        if gainSDN
+            gain = gain + ...
+                gainNoise*gain.*randn([size(n,1),size(n,2),size(n,3)]);
+        else
+            gain = gain + ...
+                gainNoise*randn([size(n,1),size(n,2),size(n,3)]);
+        end
+        
+        vA = numerator./repmat(denominator,[1,1,1,2]);
+        temp = atan2d(vA(:,:,:,2),vA(:,:,:,1));
+        e(:,:,:,1) = temp;
+        e(:,:,:,2) = gain.*sum(vA.^2,4);
+        e(:,:,:,2) = e(:,:,:,2) + ...
+            e(:,:,:,2).*motorNoise.*randn([size(vA,1),size(vA,2),size(vA,3)]);
+        
+    case 'g*2^shat'
+        numerator = vectorAverage(n,tuning,pool); 
+        denominator = (epsilon + sum(n(:,:,:,dpool),4));
+        gain = gainFunction(n,tuning,0)./b(1);
+        
+        if gainSDN
+            gain = gain + ...
+                gainNoise*gain.*randn([size(n,1),size(n,2),size(n,3)]);
+        else
+            gain = gain + ...
+                gainNoise*randn([size(n,1),size(n,2),size(n,3)]);
+        end
+        
+        vA = numerator./repmat(denominator,[1,1,1,2]);
+        temp = atan2d(vA(:,:,:,2),vA(:,:,:,1));
+        e(:,:,:,1) = temp;
+        e(:,:,:,2) = gain.*2.^sum(vA.^2,4);
+        e(:,:,:,2) = e(:,:,:,2) + ...
+            e(:,:,:,2).*motorNoise.*randn([size(vA,1),size(vA,2),size(vA,3)]);
+        
+    otherwise
+        error('decoderAlgorithm not recognized!')
+end
+% numerator = vectorAverage(n,tuning,pool); 
+% denominator = (epsilon + sum(n(:,:,:,dpool),4));
+% 
+% 
+% % Multisize
+% gain = gainFunction(n,tuning,0)./b(1);
+% 
+% if gainSDN
+%     gain = gain + ...
+%         gainNoise*gain.*randn([size(n,1),size(n,2),size(n,3)]);
+% else
+%     gain = gain + ...
+%         gainNoise*randn([size(n,1),size(n,2),size(n,3)]);
+% end
+% 
+% vA = repmat(gain,[1,1,1,2]).*numerator./repmat(denominator,[1,1,1,2]);
+% temp = atan2d(vA(:,:,:,2),vA(:,:,:,1));
+% e(:,:,:,1) = temp;
+% 
+% e(:,:,:,2) = 2.^(sqrt(sqrt(sum((vA).^2,4))));
+% e(:,:,:,2) = e(:,:,:,2) + ...
+%     e(:,:,:,2).*motorNoise.*randn([size(vA,1),size(vA,2),size(vA,3)]);
 
 %% Correlation with MT
 % z-score
