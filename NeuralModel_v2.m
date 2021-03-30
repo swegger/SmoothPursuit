@@ -272,6 +272,9 @@ if plotResults
 %     f = @(x,p)(tuning.theta.Amp .* exp( -(x-p).^2 ./ tuning.theta.sig.^2 /2 ));
     x = linspace(tuning.theta.range(1),tuning.theta.range(2),200);
     randN = 50;
+    if randN > N
+        randN = N;
+    end
     randInds = randsample(N,randN);
     subplot(4,1,1)
     for ni = 1:randN
@@ -297,7 +300,9 @@ if plotResults
             exp( -(x-tuning.theta.pref(ExInd)).^2 ./ ...
             tuning.theta.sig.^2 /2 );
     end
+    if ~isempty(f)
     plot(x,f,'k','LineWidth',2)
+    end
 %     plot(x,f(x,tuning.theta.pref(ExInd)),'k','LineWidth',2)
     xlabel('Direction (deg)')
     ylabel('Spikes/s')
@@ -333,8 +338,9 @@ if plotResults
             exp( -(log2(x./tuning.speed.pref(ExInd))).^2 ./ ...
             tuning.speed.sig );
     end
-        
+    if ~isempty(f)    
     plot(x,f,'k','LineWidth',2);
+    end
 %     plot(x,f(x,tuning.speed.pref(ExInd)),'k','LineWidth',2);
     set(gca,'XScale','log')
     xlabel('log(speed)')
