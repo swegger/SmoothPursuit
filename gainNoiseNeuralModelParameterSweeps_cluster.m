@@ -32,6 +32,7 @@ addParameter(Parser,'surround_weights',surround_weights_default)
 addParameter(Parser,'thresholds',thresholds_default)
 addParameter(Parser,'exponentials',exponentials_default)
 addParameter(Parser,'gainNoises',gainNoises_default)
+addParameter(Parser,'decoderAlgorithm','bioRxiv2020')
 addParameter(Parser,'saveOpts',saveOpts_default)
 
 parse(Parser,simi,varargin{:})
@@ -43,6 +44,7 @@ surround_weights = Parser.Results.surround_weights;
 thresholds = Parser.Results.thresholds;
 exponentials = Parser.Results.exponentials;
 gainNoises = Parser.Results.gainNoises;
+decoderAlgorithm = Parser.Results.decoderAlgorithm;
 saveOpts = Parser.Results.saveOpts;
 
 %% Set up parameter combinations
@@ -58,10 +60,20 @@ sizeProps.surround_weight = params(simi,1);
 sizeProps.exponential = params(simi,3);
 sizeProps.threshold = params(simi,2);
 
+thetaTuning.range = [-180,180,1800];
+thetaTuning.amplitudeRange = [1,20,1000];
+thetaTuning.widthRange = [10,60,1000];
+
+speedTuning.range = [-1,8,1000];
+speedTuning.amplitudeRange = [1,20,1000];
+speedTuning.widthRange = [1,2,1000];
+speedTuning.d = 0.1;
+
 % With gain noise
 saveOpts.location = [saveOpts.location(1:end-1) num2str(simi)];
 [~, ~, ~, ~, ~, ws(simi), sigGs(simi), Gs(simi,:)] = NeuralModel_v2(...
-    'thetas',thetas,'speeds',speeds,...
+    'thetas',thetas,'speeds',speeds,'decoderAlgorithm',decoderAlgorithm,...
+    'theta',thetaTuning,'speed',speedTuning,...
     'gainNoise',params(simi,4),'sizeProps',sizeProps,...
     'plotMT',false,'plotDecoding',false,'plotResults',false,...
     'saveOpts',saveOpts);
