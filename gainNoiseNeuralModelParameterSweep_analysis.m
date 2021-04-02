@@ -18,16 +18,18 @@ Parser = inputParser;
 addParameter(Parser,'dataDirectory',dataDirectory_default)
 addParameter(Parser,'dataDate',dataDate_default)
 addParameter(Parser,'calcNeuronPursuitCorrelation',false)
+addParameter(Parser,'gainNoise',0.4)
 
 parse(Parser,varargin{:})
 
 dataDirectory = Parser.Results.dataDirectory;
 dataDate = Parser.Results.dataDate;
 calcNeuronPursuitCorrelation = Parser.Results.calcNeuronPursuitCorrelation;
+gainNoise = Parser.Results.gainNoise;
 
 %% Find files corresponding to desired date
 potentialFiles = dir([dataDirectory '/*' dataDate '*.mat']);
-files = potentialFiles(3:end);
+files = potentialFiles;%(3:end);
 
 %% For each file, load in parameter values and results
 params = nan(length(files),4);
@@ -39,7 +41,12 @@ OPTIONS = optimset('Display','off');
 
 for filei = 1:length(files)
     results = load(files(filei).name,'sizeProps','w','sigG','G','gainNoise',...
-        'VeM','VeVAR');
+        'VeM','VeVAR','decoderAlgorithm');
+    if isfield(results,'decoderAlgorithm')
+        decoderAlgorithm = results.decoderAlgorithm;
+    else
+        decoderAlgorithm = 'bioRxiv2020';
+    end
     params(filei,1) = results.sizeProps.exponential;
     params(filei,2) = results.sizeProps.threshold;
     params(filei,3) = results.sizeProps.surround_weight;
@@ -93,10 +100,9 @@ for filei = 1:length(files)
         % Now add noise
         for szi = 1:3
             [etemp, ~, ~, RsTemp{szi}, ~] = DecodeMT(n{szi},results.tuning,s,...
-                'gainNoise',0.4,'epsilon',results.epsilon,'b',results.normalizer,...
-                'mymakeaxisflg',false,'plotflg',false,...
+                'gainNoise',gainNoise,'epsilon',results.epsilon,'b',results.normalizer,...
+                'mymakeaxisflg',false,'plotflg',false,'decoderAlgorithm',decoderAlgorithm,...
                 'motorNoise',0);
-            
             
             eBar = mean(etemp,3);
             eVar = var(etemp,1,3);
@@ -300,7 +306,7 @@ if calcNeuronPursuitCorrelation
     histogram(maxCorr_noise,linspace(0,0.6,50),'Normalization','probability')
     xlabel('Maximum MT-behavior correalation')
     ylabel('Relative frequency')
-    legend('\sigma_g^2 = 0','\sigma_g^2 = 0.16')
+    legend('\sigma_g^2 = 0',['\sigma_g^2 = ' num2str(gainNoise.^2)])
     
 end
 
@@ -361,14 +367,14 @@ xlabel('Thres')
 ylabel('SS')
 
 subplot(2,3,3)
-deltaWbins = 10*linspace(-0.05,0.1,25);
+deltaWbins = 10*linspace(-0.05,0.25,25);
 histogram(10*deltaW,deltaWbins)%,'Normalization','probability')
 hold on
 histogram(10*deltaW_noise,deltaWbins)%,'Normalization','probability')
 % xlim([-0.05 0.05])
 xlabel('w_{2 deg} - w_{20 deg}')
 ylabel('Count')
-legend('\sigma_G^2 = 0','\sigma_G^2 = 0.16')
+legend('\sigma_G^2 = 0',['\sigma_g^2 = ' num2str(gainNoise.^2)])
 % plotVertical(mean(sigGs));
 % hold on
 % plotVertical(sigGobs);
