@@ -381,6 +381,10 @@ if plotflg
         Dtemp(Dtemp > 180) = 360 - Dtemp(Dtemp > 180);
         Rtemp = Rs(dispDirs,dispSps,:,i);
         Ptemp = PVals(dispDirs,dispSps,:,i);
+%         tempInds = randsample(length(Dtemp),379);
+%         Dtemp = Dtemp(tempInds);
+%         Rtemp = Rtemp(tempInds);
+%         Ptemp = Ptemp(tempInds);
         h = scatter(abs(Dtemp(:)),Rtemp(:));
         set(h,'MarkerFaceColor',[0 0 0],'MarkerEdgeColor',[0 0 0])
         hold on
@@ -409,6 +413,10 @@ if plotflg
         Stemp = speedPercent(dispDirs,dispSps,:,i);
         Rtemp = Rs(dispDirs,dispSps,:,i);
         Ptemp = PVals(dispDirs,dispSps,:,i);
+%         tempInds = randsample(length(Stemp),379);
+%         Stemp = Stemp(tempInds);
+%         Rtemp = Rtemp(tempInds);
+%         Ptemp = Ptemp(tempInds);
         h = scatter(abs(Stemp(:)),Rtemp(:));
         set(h,'MarkerFaceColor',[0 0 0],'MarkerEdgeColor',[0 0 0])
         hold on
