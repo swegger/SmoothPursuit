@@ -466,13 +466,13 @@ function tuning = tuningFunctions(N,theta,speed,Cov,n0,sizeProps)
         end
         tuning.speed.sig(:,1) = randsample(speedwidths,N,true);
     end
-    if isfield(speed,'amplitudeRange')
-        amps = linspace(speed.amplitudeRange(1),speed.amplitudeRange(2),speed.amplitudeRange(3));
-        if length(amps) == 1
-            amps = amps*ones(N,1);
-        end
-        tuning.speed.Amp(:,1) = randsample(amps,N,true);
-    end
+%     if isfield(speed,'amplitudeRange')
+%         amps = linspace(speed.amplitudeRange(1),speed.amplitudeRange(2),speed.amplitudeRange(3));
+%         if length(amps) == 1
+%             amps = amps*ones(N,1);
+%         end
+%         tuning.speed.Amp(:,1) = randsample(amps,N,true);
+%     end
 
     eccentricities = sampleEccentricities(N,sizeProps.minEccentricity,sizeProps.maxEccentricity);
     rhos = 2*pi*rand(N,1);

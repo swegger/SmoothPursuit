@@ -237,7 +237,7 @@ Cov.diffAlpha = 0;
 Cov.separationLengthConstant = 0.3;
 
 thetaTuning.range = [-180,180,1800];
-thetaTuning.amplitudeRange = [1,20,1000];
+thetaTuning.amplitudeRange = [10,140,1000];
 thetaTuning.widthRange = [10,60,1000];
 
 speedTuning.range = [-1,8,1000];
