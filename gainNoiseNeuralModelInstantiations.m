@@ -237,12 +237,12 @@ Cov.diffAlpha = 0;
 Cov.separationLengthConstant = 0.3;
 
 thetaTuning.range = [-180,180,1800];
-thetaTuning.amplitudeRange = [10,140,1000];
-thetaTuning.widthRange = [10,60,1000];
+thetaTuning.amplitudeRange = [20,200,1000];
+thetaTuning.widthRange = [20,90,1000];
 
 speedTuning.range = [-1,8,1000];
 speedTuning.amplitudeRange = [1,20,1000];
-speedTuning.widthRange = [1,2,1000];
+speedTuning.widthRange = [0.64,2.8,1000];
 speedTuning.d = 0.1;
 
 % Without gain noise
