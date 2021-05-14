@@ -371,6 +371,8 @@ deltaWbins = 10*linspace(-0.05,0.25,25);
 histogram(10*deltaW,deltaWbins)%,'Normalization','probability')
 hold on
 histogram(10*deltaW_noise,deltaWbins)%,'Normalization','probability')
+plotVertical(0.0698*10)
+plotVertical(0.1034*10)
 % xlim([-0.05 0.05])
 xlabel('w_{2 deg} - w_{20 deg}')
 ylabel('Count')
