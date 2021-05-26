@@ -410,22 +410,22 @@ if plotflg
     end
     for i = 1:2   
         subplot(2,2,i+2)
-        Stemp = speedPercent(dispDirs,dispSps,:,i);
+        Stemp = -log2(speedPercent(dispDirs,dispSps,:,i)/100);
         Rtemp = Rs(dispDirs,dispSps,:,i);
         Ptemp = PVals(dispDirs,dispSps,:,i);
 %         tempInds = randsample(length(Stemp),379);
 %         Stemp = Stemp(tempInds);
 %         Rtemp = Rtemp(tempInds);
 %         Ptemp = Ptemp(tempInds);
-        h = scatter(abs(Stemp(:)),Rtemp(:));
+        h = scatter(Stemp(:),Rtemp(:));
         set(h,'MarkerFaceColor',[0 0 0],'MarkerEdgeColor',[0 0 0])
         hold on
-        hsig = scatter(abs(Stemp(Ptemp < thres)),Rtemp(Ptemp < thres));
+        hsig = scatter(Stemp(Ptemp < thres),Rtemp(Ptemp < thres));
         set(hsig,'MarkerFaceColor',[1 1 1],'MarkerEdgeColor',[0 0 0],...
             'MarkerFaceAlpha',1,'MarkerEdgeAlpha',1)
-        set(gca,'XScale','log')
+%         set(gca,'XScale','log')
         ax = axis;
-        axis([0.5 ax(2) -0.6 0.6])
+        axis([ax(1) ax(2) -0.6 0.6])
         plotHorizontal(0.5);
         plotHorizontal(0);
         plotHorizontal(-0.5);
