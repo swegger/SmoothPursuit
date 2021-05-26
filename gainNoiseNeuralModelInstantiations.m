@@ -244,10 +244,11 @@ speedTuning.range = [-1,8,1000];
 speedTuning.amplitudeRange = [1,20,1000];
 speedTuning.widthRange = [0.64,2.8,1000];
 speedTuning.d = 0.1;
+Nneurons = 1280;
 
 % Without gain noise
 saveOpts.location = [locationBase '_g*log2shat_gainNoiseOff_' datestr(now,'yyyymmdd')];
-NeuralModel_v2('thetas',thetas,'speeds',speeds,'gainNoise',0,...
+NeuralModel_v2('thetas',thetas,'speeds',speeds,'gainNoise',0,'N',Nneurons,...
     'theta',thetaTuning,'speed',speedTuning,'decoderAlgorithm','g*log2shat',...
     'mymakeaxisflg',mymakeaxisflg,'saveOpts',saveOpts)
 
@@ -255,6 +256,36 @@ NeuralModel_v2('thetas',thetas,'speeds',speeds,'gainNoise',0,...
 saveOpts.location = [locationBase '_g*log2shat_gainNoiseOn_' datestr(now,'yyyymmdd')];
 NeuralModel_v2('thetas',thetas,'speeds',speeds,'gainNoise',0.15,...
     'theta',thetaTuning,'speed',speedTuning,'decoderAlgorithm','g*log2shat',...
+    'mymakeaxisflg',mymakeaxisflg,'saveOpts',saveOpts)
+
+%% g*log2shat w/ dir tuning from -180 to 180 and only speed preference correlations
+sizeProps.surround_weight = 0;
+sizeProps.exponential = 1;
+sizeProps.threshold = 0;
+Cov.diffAlpha = 0;
+Cov.separationLengthConstant = 5;
+Cov.thetaLengthConstant = 5;
+
+thetaTuning.range = [-180,180,1800];
+thetaTuning.amplitudeRange = [20,200,1000];
+thetaTuning.widthRange = [20,90,1000];
+
+speedTuning.range = [-1,8,1000];
+speedTuning.amplitudeRange = [1,20,1000];
+speedTuning.widthRange = [0.64,2.8,1000];
+speedTuning.d = 0.1;
+Nneurons = 1280;
+
+% Without gain noise
+saveOpts.location = [locationBase '_g*log2shat_gainNoiseOff_' datestr(now,'yyyymmdd')];
+NeuralModel_v2('thetas',thetas,'speeds',speeds,'gainNoise',0,'N',Nneurons,...
+    'theta',thetaTuning,'speed',speedTuning,'decoderAlgorithm','g*log2shat','Cov',Cov,...
+    'mymakeaxisflg',mymakeaxisflg,'saveOpts',saveOpts)
+
+% With gain noise
+saveOpts.location = [locationBase '_g*log2shat_gainNoiseOn_' datestr(now,'yyyymmdd')];
+NeuralModel_v2('thetas',thetas,'speeds',speeds,'gainNoise',0.15,'N',Nneurons,...
+    'theta',thetaTuning,'speed',speedTuning,'decoderAlgorithm','g*log2shat','Cov',Cov,...
     'mymakeaxisflg',mymakeaxisflg,'saveOpts',saveOpts)
 
 %% g*2^shat w/ dir tuning from -180 to 180

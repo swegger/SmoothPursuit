@@ -101,7 +101,7 @@ switch decoderAlgorithm
             'gainNoise',0,'epsilon',epsilon,'b',[1 0],'decoderAlgorithm',decoderAlgorithm,...
             'mymakeaxisflg',false,'plotflg',false,...
             'motorNoise',motorNoise);
-        normalizer = [mean(e_temp(:))/5, 0];
+        normalizer = [sum(sum(e_temp(1,:,:,2),3))/numel(e_temp(1,:,:,2))/10, 0];
 end
     
 %% Run MT simulations
@@ -145,7 +145,7 @@ OPTIONS = optimset('Display','off');
 [w,sigG] = fit_gainSDN(speeds,VeM,VeVAR,0.1,gainNoise,OPTIONS);
 
 
-%% Estimate gain
+%% Estimate gain{szi}~ain{szi}
 for szi = 1:length(sizes)
     ys = e{szi}(1,:,:,2);
     xs = repmat(speeds,[size(ys,1),1,size(ys,3)]);
@@ -493,7 +493,7 @@ function tuning = tuningFunctions(N,theta,speed,Cov,n0,sizeProps)
     if isfield(sizeProps,'surround_weight')
         tuning.size.surround_weight = sizeProps.surround_weight.*ones(N,1);
     else
-        tuning.size.surround_weight = zeros(N,1);
+        tuning.size.surround_weight = ones(N,1);%zeros(N,1);
     end
 
     tuning.n0 = n0;
