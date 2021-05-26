@@ -57,29 +57,30 @@ for filei = 1:length(files)
     VeM = permute(results.VeM,[3,2,1]);
     VeVAR = permute(results.VeVAR,[3,2,1]);
     
-    for szi = [1,3]
+    for szi = 1:3
         w_standard(filei,szi) = fit_standardSDN(...
             VeM(szi,:),VeVAR(szi,:),0.1,OPTIONS); 
     end
     
     if calcNeuronPursuitCorrelation
+        szind = 2;
         results = load(files(filei).name,'e','n','s','tuning','epsilon','normalizer');
         n = results.n;
-        e = results.e{1};
+        e = results.e{szind};
         s = results.s;
         
         % z-score
-        nM = mean(n{1},3);
+        nM = mean(n{szind},3);
         pM = mean(e,3);
-        nVar = var(n{1},[],3);
+        nVar = var(n{szind},[],3);
         pVar = var(e,[],3);
         
-        nZ = (n{1} - repmat(nM,[1,1,size(n{1},3),1]))./repmat(sqrt(nVar),[1,1,size(n,3),1]);
-        pZ = (e - repmat(pM,[1,1,size(n{1},3),1]))./repmat(sqrt(pVar),[1,1,size(n,3),1]);
+        nZ = (n{szind} - repmat(nM,[1,1,size(n{szind},3),1]))./repmat(sqrt(nVar),[1,1,size(n{szind},3),1]);
+        pZ = (e - repmat(pM,[1,1,size(n{szind},3),1]))./repmat(sqrt(pVar),[1,1,size(n{szind},3),1]);
         
         % Correlate responses
-        Rs = nan(size(s,1),size(s,2),size(n{1},4),2);
-        PVals = nan(size(s,1),size(s,2),size(n{1},4),2);
+        Rs = nan(size(s,1),size(s,2),size(n{szind},4),2);
+        PVals = nan(size(s,1),size(s,2),size(n{szind},4),2);
         for thetai = 1:size(s,1)
             disp(thetai/size(s,1))
             for speedi = 1:size(s,2)
@@ -103,7 +104,7 @@ for filei = 1:length(files)
                 'gainNoise',gainNoise,'epsilon',results.epsilon,'b',results.normalizer,...
                 'mymakeaxisflg',false,'plotflg',false,'decoderAlgorithm',decoderAlgorithm,...
                 'motorNoise',0);
-            
+    
             eBar = mean(etemp,3);
             eVar = var(etemp,1,3);
             
@@ -113,7 +114,7 @@ for filei = 1:length(files)
             w_standard_noise(filei,szi) = fit_standardSDN(...
                 VeMnoise(:,:,szi),VeVARnoise(:,:,szi),0.1,OPTIONS);
         end
-        maxCorr_noise(filei,1) = max(RsTemp{1}(:));
+        maxCorr_noise(filei,1) = max(RsTemp{szind}(:));
     end
 end
 
@@ -304,6 +305,7 @@ if calcNeuronPursuitCorrelation
     histogram(maxCorr,linspace(0,0.6,50),'Normalization','probability')
     hold on
     histogram(maxCorr_noise,linspace(0,0.6,50),'Normalization','probability')
+    plotVertical(0.3378);
     xlabel('Maximum MT-behavior correalation')
     ylabel('Relative frequency')
     legend('\sigma_g^2 = 0',['\sigma_g^2 = ' num2str(gainNoise.^2)])
@@ -323,8 +325,10 @@ subplot(2,3,2)
 exps = unique(params(:,1));
 thres = unique(params(:,2));
 sss = unique(params(:,3));
-deltaW = w_standard(:,1) - w_standard(:,end);
-deltaW_noise = w_standard_noise(:,1) - w_standard_noise(:,end);
+% deltaW = w_standard(:,1) - w_standard(:,end);
+deltaW = w_standard(:,2) - w_standard(:,end);
+% deltaW_noise = w_standard_noise(:,1) - w_standard_noise(:,end);
+deltaW_noise = w_standard_noise(:,2) - w_standard_noise(:,end);
 for expi = 1:length(exps)
     for thresi = 1:length(thres)
         mdW(expi,thresi) = mean(deltaW(params(:,1) == exps(expi) & params(:,2) == thres(thresi)));
@@ -371,8 +375,10 @@ deltaWbins = 10*linspace(-0.05,0.25,25);
 histogram(10*deltaW,deltaWbins)%,'Normalization','probability')
 hold on
 histogram(10*deltaW_noise,deltaWbins)%,'Normalization','probability')
-plotVertical(0.0698*10)
-plotVertical(0.1034*10)
+% plotVertical(0.0698*10)
+% plotVertical(0.1034*10)
+plotVertical(0.0317*10)
+plotVertical(0.0522*10)
 % xlim([-0.05 0.05])
 xlabel('w_{2 deg} - w_{20 deg}')
 ylabel('Count')
