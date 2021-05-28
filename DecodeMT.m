@@ -19,6 +19,7 @@ addParameter(Parser,'motorNoise',0)
 addParameter(Parser,'k',0.65)
 addParameter(Parser,'b',[0, 0])
 addParameter(Parser,'gainSDN',false)
+addParameter(Parser,'restrictedDirs',true)
 addParameter(Parser,'pool',NaN)
 addParameter(Parser,'decoderAlgorithm','bioRxiv2020')
 addParameter(Parser,'plotflg',true)
@@ -35,6 +36,7 @@ motorNoise = Parser.Results.motorNoise;
 k = Parser.Results.k;
 b = Parser.Results.b;
 gainSDN = Parser.Results.gainSDN;
+restrictedDirs = Parser.Results.restrictedDirs;
 pool = Parser.Results.pool;
 decoderAlgorithm = Parser.Results.decoderAlgorithm;
 plotflg = Parser.Results.plotflg;
@@ -377,10 +379,16 @@ if plotflg
     for i = 1:2   
         subplot(2,2,i)
         Dtemp = dirDiff(dispDirs,dispSps,:,i);
+        if restrictedDirs
+            dispDirs2 = squeeze(Dtemp(:,1,:) < 45 & Dtemp(:,1,:) > -45 | Dtemp(:,1,:) < -135 | Dtemp(:,1,:) > 135);
+        else
+            dispDirs2 = true(size(Rs,3),1);
+        end
         Dtemp(Dtemp < -180) = 360 + Dtemp(Dtemp < -180);
         Dtemp(Dtemp > 180) = 360 - Dtemp(Dtemp > 180);
-        Rtemp = Rs(dispDirs,dispSps,:,i);
-        Ptemp = PVals(dispDirs,dispSps,:,i);
+        Dtemp = Dtemp(:,:,dispDirs2);
+        Rtemp = Rs(dispDirs,dispSps,dispDirs2,i);
+        Ptemp = PVals(dispDirs,dispSps,dispDirs2,i);
 %         tempInds = randsample(length(Dtemp),379);
 %         Dtemp = Dtemp(tempInds);
 %         Rtemp = Rtemp(tempInds);
@@ -410,9 +418,16 @@ if plotflg
     end
     for i = 1:2   
         subplot(2,2,i+2)
-        Stemp = -log2(speedPercent(dispDirs,dispSps,:,i)/100);
-        Rtemp = Rs(dispDirs,dispSps,:,i);
-        Ptemp = PVals(dispDirs,dispSps,:,i);
+        Dtemp = dirDiff(dispDirs,dispSps,:,i);
+        if restrictedDirs
+            dispDirs2 = squeeze(Dtemp(:,1,:) < 45 & Dtemp(:,1,:) > -45 | Dtemp(:,1,:) < -135 | Dtemp(:,1,:) > 135);
+        else
+            dispDirs2 = true(size(Rs,3),1);
+        end
+        dispDirs2 = squeeze(Dtemp(:,1,:) < 45 & Dtemp(:,1,:) > -45 | Dtemp(:,1,:) < -135 | Dtemp(:,1,:) > 135);
+        Stemp = -log2(speedPercent(dispDirs,dispSps,dispDirs2,i)/100);
+        Rtemp = Rs(dispDirs,dispSps,dispDirs2,i);
+        Ptemp = PVals(dispDirs,dispSps,dispDirs2,i);
 %         tempInds = randsample(length(Stemp),379);
 %         Stemp = Stemp(tempInds);
 %         Rtemp = Rtemp(tempInds);

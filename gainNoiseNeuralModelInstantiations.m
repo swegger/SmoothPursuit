@@ -11,7 +11,7 @@ thetas = 0;
 speeds = 4:4:20;
 mymakeaxisflg = false;
 
-Cov.sigf = 0.36;
+Cov.sigf = 1;
 Cov.thetaLengthConstant = 0.4;
 Cov.speedLengthConstant = 0.3;
 Cov.separationLengthConstant = 0.3;
@@ -249,13 +249,13 @@ Nneurons = 1280;
 % Without gain noise
 saveOpts.location = [locationBase '_g*log2shat_gainNoiseOff_' datestr(now,'yyyymmdd')];
 NeuralModel_v2('thetas',thetas,'speeds',speeds,'gainNoise',0,'N',Nneurons,...
-    'theta',thetaTuning,'speed',speedTuning,'decoderAlgorithm','g*log2shat',...
+    'theta',thetaTuning,'speed',speedTuning,'decoderAlgorithm','g*log2shat','Cov',Cov,...
     'mymakeaxisflg',mymakeaxisflg,'saveOpts',saveOpts)
 
 % With gain noise
 saveOpts.location = [locationBase '_g*log2shat_gainNoiseOn_' datestr(now,'yyyymmdd')];
 NeuralModel_v2('thetas',thetas,'speeds',speeds,'gainNoise',0.15,...
-    'theta',thetaTuning,'speed',speedTuning,'decoderAlgorithm','g*log2shat',...
+    'theta',thetaTuning,'speed',speedTuning,'decoderAlgorithm','g*log2shat','Cov',Cov,...
     'mymakeaxisflg',mymakeaxisflg,'saveOpts',saveOpts)
 
 %% g*log2shat w/ dir tuning from -180 to 180 and only speed preference correlations
@@ -277,13 +277,13 @@ speedTuning.d = 0.1;
 Nneurons = 1280;
 
 % Without gain noise
-saveOpts.location = [locationBase '_g*log2shat_gainNoiseOff_' datestr(now,'yyyymmdd')];
+saveOpts.location = [locationBase '_g*log2shat_gainNoiseOff_structuredCorrSpeedOnly_' datestr(now,'yyyymmdd')];
 NeuralModel_v2('thetas',thetas,'speeds',speeds,'gainNoise',0,'N',Nneurons,...
     'theta',thetaTuning,'speed',speedTuning,'decoderAlgorithm','g*log2shat','Cov',Cov,...
     'mymakeaxisflg',mymakeaxisflg,'saveOpts',saveOpts)
 
 % With gain noise
-saveOpts.location = [locationBase '_g*log2shat_gainNoiseOn_' datestr(now,'yyyymmdd')];
+saveOpts.location = [locationBase '_g*log2shat_gainNoiseOn__structuredCorrSpeedOnly_' datestr(now,'yyyymmdd')];
 NeuralModel_v2('thetas',thetas,'speeds',speeds,'gainNoise',0.15,'N',Nneurons,...
     'theta',thetaTuning,'speed',speedTuning,'decoderAlgorithm','g*log2shat','Cov',Cov,...
     'mymakeaxisflg',mymakeaxisflg,'saveOpts',saveOpts)
