@@ -34,15 +34,21 @@ f = nan(length(thetas),length(speeds),length(tuning.theta.pref));
 n = nan(length(thetas),length(speeds),trialN,length(tuning.theta.pref));
 
 % Cycle through input thetas and speeds
+if tuning.Cov.diffAlpha == 0
+    [C,Q] = neuralCov(tuning,thetas(1),sz,speeds(1));
+end
 for thetai = 1:length(thetas)
     for speedi = 1:length(speeds)
         f(thetai,speedi,:) = neuralTuning(thetas(thetai),speeds(speedi),sz,tuning);
-        [C,Q] = neuralCov(tuning,thetas(thetai),sz,speeds(speedi));
+        if tuning.Cov.diffAlpha > 0
+            [C,Q] = neuralCov(tuning,thetas(thetai),sz,speeds(speedi));
+        end
 %         n(thetai,speedi,:,:) = mvnrnd(permute(f(thetai,speedi,:),[1,3,2]),C,trialN);
         for triali = 1:trialN
             y = permute(Q*randn(length(tuning.theta.pref),1),[2,3,4,1]);
             n(thetai,speedi,triali,:) = permute(f(thetai,speedi,:),[1,2,4,3]) ...
-                + sqrt(1.5*permute(f(thetai,speedi,:),[1,2,4,3]).*y);
+                + y.*sqrt(1.5*permute(f(thetai,speedi,:),[1,2,4,3]));
+            ytemp(triali,:) = y;
         end
     end
 end
@@ -52,23 +58,33 @@ end
 M = permute(nanmean(n,3),[1,2,4,3]);
 Mtheta = nansum(nansum(n,2),3)/(size(n,2)+size(n,3));
 Mspeed = nansum(nansum(n,1),3)/(size(n,1)+size(n,3));
-VARs = permute(nanvar(n,3),[1,2,4,3]);
+VARs = permute(nanvar(n,[],3),[1,2,4,3]);
 
 % Signal correlations
 
 % Noise correlations
 noise = n - repmat(permute(M,[1 2 4 3]),[1,1,size(n,3),1]);
-for neuroni = 1:size(n,4)
-    temp1 = reshape(noise(:,:,:,neuroni),[numel(noise(:,:,:,neuroni)),1]);
-    temp1 = temp1/std(temp1);
-    for neuronj = 1:size(n,4)
-        temp2 = reshape(noise(:,:,:,neuronj),[numel(noise(:,:,:,neuronj)),1]);
-        temp2 = temp2/std(temp2);
-        [tempR, tempP] = corrcoef(temp1,temp2);
-        rNN(neuroni,neuronj) = tempR(1,2);
-        pNN(neuroni,neuronj) = tempP(1,2);
+zscores = noise./sqrt(repmat(permute(VARs,[1 2 4 3]),[1,1,size(n,3),1]));
+Zs = [];
+for thetai = 1:length(thetas)
+    for speedi = 1:length(speeds)
+        Zs = [Zs; permute(zscores(thetai,speedi,:,:),[3,4,1,2])];
     end
 end
+[rNN,pNN] = corrcoef(Zs);
+% for neuroni = 1:size(n,4)
+%     temp1 = reshape(zscores(:,:,:,neuroni),[numel(zscores(:,:,:,neuroni)),1]);
+% %    temp1 = reshape(noise(:,:,:,neuroni),[numel(noise(:,:,:,neuroni)),1]);
+% %    temp1 = temp1./std(temp1);
+%     for neuronj = 1:size(n,4)
+%         temp2 = reshape(zscores(:,:,:,neuronj),[numel(zscores(:,:,:,neuronj)),1]);
+% %        temp2 = reshape(noise(:,:,:,neuronj),[numel(noise(:,:,:,neuronj)),1]);
+% %        temp2 = temp2./std(temp2);
+%         [tempR, tempP] = corrcoef(temp1,temp2);
+%         rNN(neuroni,neuronj) = tempR(1,2);
+%         pNN(neuroni,neuronj) = tempP(1,2);
+%     end
+% end
 
 %% Plotting
 if plotflg
@@ -99,7 +115,7 @@ if plotflg
     hold on
     x = linspace(min(alldS),max(alldS),100);
     plot(x,tuning.Cov.sigf*exp(-(x.^2./(255.5^2*tuning.Cov.speedLengthConstant.^2)) ),'r')
-    axis([0 150 -0.25 1])
+    axis([0 150 -0.4 0.8])
     plotHorizontal(0);
     xlabel('\Delta Speed perference')
     ylabel('Noise Correlation')
@@ -109,7 +125,7 @@ if plotflg
     
     subplot(3,2,4)
     [D1,D2] = meshgrid(tuning.theta.pref);
-    dD = D1-D2;
+    dD = wrapTo180(D1-D2);
     mask = logical(tril(ones(size(rNN)),-1));
     alldD = abs(dD(mask));
     allrNN = rNN(mask);
@@ -119,9 +135,9 @@ if plotflg
 %     hS.MarkerFaceAlpha = 0.01;
 %     hS.MarkerEdgeAlpha = 0.01;
     hold on
-    x = linspace(min(alldS),max(alldS),100);
+    x = linspace(min(alldD),max(alldD),100);
     plot(x,tuning.Cov.sigf*exp(-(x.^2./(180^2*tuning.Cov.thetaLengthConstant.^2)) ),'r')
-    axis([0 180 -0.25 1])
+    axis([0 180 -0.4 0.8])
     plotHorizontal(0);
     plotHorizontal(0.2);
     xlabel('\Delta Direction perference')
@@ -145,7 +161,7 @@ if plotflg
     hold on
     x = linspace(min(alldX),max(alldX),100);
     plot(x,tuning.Cov.sigf*exp(-(x.^2./(60^2*tuning.Cov.separationLengthConstant.^2)) ),'r')
-    axis([0 60 -0.25 1])
+    axis([0 60 -0.4 0.8])
     plotHorizontal(0);
     plotHorizontal(0.2);
     xlabel('\Delta Position')
@@ -228,6 +244,31 @@ function f = sizeTuning(sz,tuning)
     
     
     
+%% neuralCovLC
+function [C,Q] = neuralCovLC(tuning)
+nCells = length(tuning.theta.pref);
+rho = tuning.Cov.sigf;
+tau_spd = 255*tuning.Cov.speedLengthConstant;
+tau_dir = 180*tuning.Cov.thetaLengthConstant;
+Q = ones(nCells)*rho; %uniform noise correlations
+Q(eye(nCells)~=0)=1;  %replace diagonals with 1
+
+    C=zeros(nCells);
+    for i=1:nCells
+        for j=1:nCells
+            %expected correlation structure
+            %organized: all directions for each speed, sequentially
+            if i==j
+                C(i,j)=1;
+            else
+                C(i,j)=rho*exp(-((tuning.speed.pref(i)-tuning.speed.pref(j))/tau_spd)^2)...
+                    *exp(-((wrapTo180(tuning.theta.pref(i)-tuning.theta.pref(j)))/tau_dir)^2);
+                C(j,i)=C(i,j);
+            end
+        end
+    end
+    Q=(C);
+
 %% neuralCov
 function [C,Q] = neuralCov(tuning,theta,sz,s)
 %% Model the covariance as a Gaussian process
@@ -244,7 +285,7 @@ for i = 1:length(tuning.theta.pref)
             else
                 C(i,j) = tuning.Cov.sigf * exp( ...
                     -( ...
-                    ((1-tuning.Cov.alpha)*(tuning.theta.pref(i)-tuning.theta.pref(j)) +...
+                    ((1-tuning.Cov.alpha)*(wrapTo180(tuning.theta.pref(i)-tuning.theta.pref(j))) +...
                     tuning.Cov.alpha*(360*rand-180)).^2 ./ ...
                     (180^2*tuning.Cov.thetaLengthConstant.^2) + ...
                     ((1-tuning.Cov.alpha)*(tuning.speed.pref(i)-tuning.speed.pref(j)) + ...
@@ -308,6 +349,7 @@ QQ = Q*Q';
 % QQ = QQ - diag(diag(QQ)) + diag(ones(size(QQ,1)));
 Q = real(sqrtm(QQ));
 % Q = real(sqrtm(C));
+% Q = C;
 
 %% Derivative wrt speed
 function df = derivativeWRTspeed(tuning,theta,sz,s)

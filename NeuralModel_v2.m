@@ -92,9 +92,16 @@ tuning = tuningFunctions(N,theta,speed,Cov,n0,sizeProps);
 [Ds,Ss] = meshgrid(thetas,speeds);
 s = cat(3,Ds',Ss');
 switch decoderAlgorithm
-    case {'bioRxiv2020', 'simpleSumVA^2', 'simpleSumVA^2'}
+    case {'bioRxiv2020'}
         gainTemp = gainFunction(nTemp(1,:,:,:),tuning,0);
         normalizer = [mean(gainTemp(:))/mean(log2(speeds)), 0]; % For -90 90 theta range
+        
+    case {'simpleSumVA^2'}
+        [e_temp, gain_temp] = DecodeMT(nTemp,tuning,s,...
+            'gainNoise',0,'epsilon',epsilon,'b',[1 0],'decoderAlgorithm',decoderAlgorithm,...
+            'mymakeaxisflg',false,'plotflg',false,...
+            'motorNoise',motorNoise);
+        normalizer = [sqrt(sum(sum(e_temp(1,:,:,2),3))/numel(e_temp(1,:,:,2)))/10, 0];
         
     otherwise
         [e_temp, gain_temp] = DecodeMT(nTemp,tuning,s,...
