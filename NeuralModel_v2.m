@@ -18,7 +18,7 @@ speed_default.Amp = 10;
 speed_default.sig = 1.64;
 speed_default.d = 0.1;
 
-Cov_default.sigf = 0.36;
+Cov_default.sigf = 0.55;
 Cov_default.thetaLengthConstant = 0.4;
 Cov_default.speedLengthConstant = 0.3;
 Cov_default.separationLengthConstant = 0.3;
