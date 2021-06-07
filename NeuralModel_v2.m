@@ -247,7 +247,7 @@ if plotResults
     [x,y] = ellipse(tuning.size.radius(ind1),tuning.size.radius(ind1),tuning.size.x(ind1),tuning.size.y(ind1),pi/360);
     plot(x,y,'k')
     ind2 = find(sqrt(tuning.size.x.^2+tuning.size.y.^2) < 6 & sqrt(tuning.size.x.^2+tuning.size.y.^2) > 3 & tuning.speed.pref > 10 ...
-        & tuning.theta.pref < 30 & tuning.theta.pref > -30,1);
+        & tuning.theta.pref < 30 & tuning.theta.pref > -30 & tuning.theta.Amp > 50,1);
     [x,y] = ellipse(tuning.size.radius(ind2),tuning.size.radius(ind2),tuning.size.x(ind2),tuning.size.y(ind2),pi/360);
     plot(x,y,'-','Color',[0,174,239]/255)
     plotVertical(0);

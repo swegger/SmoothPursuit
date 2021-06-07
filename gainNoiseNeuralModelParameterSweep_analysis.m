@@ -40,6 +40,7 @@ w_standard = nan(length(files),3);
 OPTIONS = optimset('Display','off');
 
 for filei = 1:length(files)
+    disp(['File ' num2str(filei) ' of ' num2str(length(files))])
     results = load(files(filei).name,'sizeProps','w','sigG','G','gainNoise',...
         'VeM','VeVAR','decoderAlgorithm');
     if isfield(results,'decoderAlgorithm')
@@ -325,10 +326,8 @@ subplot(2,3,2)
 exps = unique(params(:,1));
 thres = unique(params(:,2));
 sss = unique(params(:,3));
-% deltaW = w_standard(:,1) - w_standard(:,end);
-deltaW = w_standard(:,2) - w_standard(:,end);
-% deltaW_noise = w_standard_noise(:,1) - w_standard_noise(:,end);
-deltaW_noise = w_standard_noise(:,2) - w_standard_noise(:,end);
+deltaW = w_standard(:,1) - w_standard(:,end);
+deltaW_noise = w_standard_noise(:,1) - w_standard_noise(:,end);
 for expi = 1:length(exps)
     for thresi = 1:length(thres)
         mdW(expi,thresi) = mean(deltaW(params(:,1) == exps(expi) & params(:,2) == thres(thresi)));
@@ -337,8 +336,6 @@ for expi = 1:length(exps)
     end
 end
 scatter(p1(:),p2(:),10,mdW(:))
-% caxis(cax)
-%scatter(params(:,1),params(:,2),10,sigGs)
 xlabel('Exp')
 ylabel('Thres')
 subplot(2,3,4)
@@ -351,8 +348,6 @@ for expi = 1:length(exps)
     end
 end
 scatter(p1(:),p2(:),10,mdW(:))
-% caxis(cax)
-%scatter(params(:,1),params(:,3),10,sigGs)
 xlabel('Exp')
 ylabel('SS')
 subplot(2,3,5)
@@ -365,27 +360,74 @@ for thresi = 1:length(thres)
     end
 end
 scatter(p1(:),p2(:),10,mdW(:))
-% caxis(cax)
-%scatter(params(:,2),params(:,3),10,sigGs)
 xlabel('Thres')
 ylabel('SS')
 
 subplot(2,3,3)
-deltaWbins = 10*linspace(-0.05,0.25,25);
-histogram(10*deltaW,deltaWbins)%,'Normalization','probability')
+deltaWbins = 10*linspace(0,0.25,59);
+histogram(10*deltaW,deltaWbins)
 hold on
-histogram(10*deltaW_noise,deltaWbins)%,'Normalization','probability')
-% plotVertical(0.0698*10)
-% plotVertical(0.1034*10)
-plotVertical(0.0317*10)
-plotVertical(0.0522*10)
-% xlim([-0.05 0.05])
+histogram(10*deltaW_noise,deltaWbins)
+plotVertical(0.0698*10)
+plotVertical(0.1034*10)
 xlabel('w_{2 deg} - w_{20 deg}')
 ylabel('Count')
 legend('\sigma_G^2 = 0',['\sigma_g^2 = ' num2str(gainNoise.^2)])
-% plotVertical(mean(sigGs));
-% hold on
-% plotVertical(sigGobs);
+
+%% Parameter effect on change in w_standard
+figure('Name','Parameter effect delta w_standard')
+subplot(2,3,1)
+subplot(2,3,2)
+exps = unique(params(:,1));
+thres = unique(params(:,2));
+sss = unique(params(:,3));
+deltaW = w_standard(:,2) - w_standard(:,end);
+deltaW_noise = w_standard_noise(:,2) - w_standard_noise(:,end);
+for expi = 1:length(exps)
+    for thresi = 1:length(thres)
+        mdW(expi,thresi) = mean(deltaW(params(:,1) == exps(expi) & params(:,2) == thres(thresi)));
+        p1(expi,thresi) = exps(expi);
+        p2(expi,thresi) = thres(thresi);
+    end
+end
+scatter(p1(:),p2(:),10,mdW(:))
+xlabel('Exp')
+ylabel('Thres')
+subplot(2,3,4)
+clear msigG p1 p2
+for expi = 1:length(exps)
+    for ssi = 1:length(sss)
+        mdW(expi,ssi) = mean(deltaW(params(:,1) == exps(expi) & params(:,3) == sss(ssi)));
+        p1(expi,ssi) = exps(expi);
+        p2(expi,ssi) = sss(ssi);
+    end
+end
+scatter(p1(:),p2(:),10,mdW(:))
+xlabel('Exp')
+ylabel('SS')
+subplot(2,3,5)
+clear msigG p1 p2
+for thresi = 1:length(thres)
+    for ssi = 1:length(sss)
+        mdW(thresi,ssi) = mean(deltaW(params(:,2) == thres(thresi) & params(:,3) == sss(ssi)));
+        p1(thresi,ssi) = thres(thresi);
+        p2(thresi,ssi) = sss(ssi);
+    end
+end
+scatter(p1(:),p2(:),10,mdW(:))
+xlabel('Thres')
+ylabel('SS')
+
+subplot(2,3,3)
+deltaWbins = 10*linspace(0,0.25,59);
+histogram(10*deltaW,deltaWbins)
+hold on
+histogram(10*deltaW_noise,deltaWbins)
+plotVertical(0.0317*10)
+plotVertical(0.0522*10)
+xlabel('w_{6 deg} - w_{20 deg}')
+ylabel('Count')
+legend('\sigma_G^2 = 0',['\sigma_g^2 = ' num2str(gainNoise.^2)])
 
 
 %% Functions
