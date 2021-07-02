@@ -142,9 +142,9 @@ switch decoderAlgorithm
         
     case 'gainConstant'
         numerator = vectorAverage(n,tuning,pool);
-        denominator = (epsilon + sum(n(:,:,:,dpool),4));
+        denominator = epsilon + sqrt(sum(huangAndLisberger(n,tuning,dpool).^2,4));
         
-        gain = 1;
+        gain = 1./b(1);
         
         if gainSDN
             gain = gain + ...
@@ -157,7 +157,7 @@ switch decoderAlgorithm
         vA = repmat(gain,[1,1,1,2]).*numerator./repmat(denominator,[1,1,1,2]);
         temp = atan2d(vA(:,:,:,2),vA(:,:,:,1));
         e(:,:,:,1) = temp;
-        e(:,:,:,2) = 2.^(sqrt(sqrt(sum((vA).^2,4))));
+        e(:,:,:,2) = 2.^(sqrt(sum((vA).^2,4)));
         e(:,:,:,2) = e(:,:,:,2) + ...
             e(:,:,:,2).*motorNoise.*randn([size(vA,1),size(vA,2),size(vA,3)]);
     
