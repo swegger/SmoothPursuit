@@ -233,8 +233,8 @@ NeuralModel_v2('thetas',thetas,'speeds',speeds,'gainNoise',0.8,'N',Nneurons,...
 
 %% g*log2shat w/ dir tuning from -180 to 180 and only speed preference correlations
 Cov.diffAlpha = 0;
-Cov.separationLengthConstant = 5;
-Cov.thetaLengthConstant = 5;
+Cov.separationLengthConstant = Inf;
+Cov.thetaLengthConstant = Inf;
 
 thetaTuning.range = [-180,180,1800];
 thetaTuning.amplitudeRange = [20,200,1000];
