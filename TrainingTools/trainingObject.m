@@ -16,6 +16,7 @@ classdef trainingObject
         directions;
         speeds;
         onOff;
+        motionOnOff;
         eye;
         calib;
     end
@@ -108,6 +109,9 @@ classdef trainingObject
                         obj.speeds(ind,1) = str2double(...
                             extractAfter(file.trialname,'-'));
                         obj.onOff(ind,:) = file.targets.on{1};
+                        patSpeed = sqrt(file.targets.patvelH.^2+file.targets.patvelV.^2);
+                        tSpeed = sqrt(file.targets.hvel.^2 + file.targets.vvel.^2);
+                        obj.motionOnOff(ind,:) = [find(patSpeed(1,:),1) find(tSpeed(1,:),1,'last')];
                         
                         % Add eye information
                         obj.eye(:,ind).hpos = (file.data(1,:))*obj.calib.posGain;
@@ -153,36 +157,83 @@ classdef trainingObject
         end
         
         %% Plotting methods
-        function h = plotEyeTraces(obj,directions,speeds)
+        function h = plotEyeTraces(obj,directions,speeds,varargin)
         % Plot the eye traces for each direction and speed specified by
         % directions and speeds
+        
+            % Pasrse inputs
+            Parser = inputParser;
             
-            h = figure;
+            addRequired(Parser,'obj')
+            addRequired(Parser,'directions')
+            addRequired(Parser,'speeds')
+            addParameter(Parser,'NormalizeTime',false)
+            addParameter(Parser,'sampleN',NaN)
+            addParameter(Parser,'colorAlpha',NaN)
+            
+            parse(Parser,obj,directions,speeds,varargin{:})
+            
+            obj = Parser.Results.obj;
+            directions = Parser.Results.directions;
+            speeds = Parser.Results.speeds;
+            NormalizeTime = Parser.Results.NormalizeTime;
+            sampleN = Parser.Results.sampleN;
+            colorAlpha = Parser.Results.colorAlpha;
+            
+            % Make figure
+            h = figure('Name','Eye traces by direction and speed','Units','Normalized','Position',[0.1310 0.0340 0.4377 0.8597]);
             ind = 0;
-            for di = 1:length(directions)
-                for si = 1:length(speeds)
+            for si = 1:length(speeds)
+                for di = 1:length(directions)
                     ind = ind+1;
-                    subplot(length(directions),length(speeds),ind)
+                    subplot(length(speeds),length(directions),ind)
                     [condInds,~] = trialSort(obj,directions(di),speeds(si),NaN);
-                    for i = 1:length(condInds)
-                        plot(obj.eye(condInds(i)).vvel(obj.onOff(condInds(i),1):obj.onOff(condInds(i),2)),...
-                            'Color',[1 0 0 5/length(condInds)])
-                        hold on
-                        plot(obj.eye(condInds(i)).hvel(obj.onOff(condInds(i),1):obj.onOff(condInds(i),2)),...
-                            'Color',[0 0 0 5/length(condInds)])
+                    
+                    if isnan(sampleN)
+                        sampleN = length(condInds);
+                    elseif sampleN < length(condInds)
+                        condInds = randsample(condInds,sampleN);
                     end
-                    xlim([0 1800])
+                    
+                    if isnan(colorAlpha)
+                        colorAlpha = 1/length(condInds);
+                    end
+                    
+                    for i = 1:length(condInds)
+                        if NormalizeTime
+                            plot(linspace(0,1,obj.motionOnOff(condInds(i),2)-obj.motionOnOff(condInds(i),1)+251),...
+                                obj.eye(condInds(i)).vvel(obj.motionOnOff(condInds(i),1):obj.motionOnOff(condInds(i),2)+250),...
+                                'Color',[1 0 0 colorAlpha])
+                            hold on
+                            plot(linspace(0,1,obj.motionOnOff(condInds(i),2)-obj.motionOnOff(condInds(i),1)+251),...
+                                obj.eye(condInds(i)).hvel(obj.motionOnOff(condInds(i),1):obj.motionOnOff(condInds(i),2)+250),...
+                                'Color',[0 0 1 colorAlpha])
+                        else
+                            plot(obj.eye(condInds(i)).vvel(obj.onOff(condInds(i),1):obj.onOff(condInds(i),2)),...
+                                'Color',[1 0 0 colorAlpha])
+                            hold on
+                            plot(obj.eye(condInds(i)).hvel(obj.onOff(condInds(i),1):obj.onOff(condInds(i),2)),...
+                                'Color',[0 0 1 colorAlpha])
+                        end
+                    end
+                    if NormalizeTime
+                        xlim([0 1])
+                    else
+                        xlim([0 1800])
+                    end
                     ylim([-max(speeds)*1.25 max(speeds)*1.25])
-                    lineProps.color = 'k';
+                    lineProps.color = 'b';
                     lineProps.LineStyle = '--';
                     plotHorizontal(cosd(directions(di))*speeds(si),'lineProperties',lineProps);
                     lineProps.color = 'r';
                     plotHorizontal(sind(directions(di))*speeds(si),'lineProperties',lineProps);
                     
-                    if di == length(directions)
+                    if di == floor(length(directions)/2) && si == length(speeds) && NormalizeTime
+                        xlabel('Normalized time')
+                    elseif di == floor(length(directions)/2) && si == length(speeds)
                         xlabel('Time from motion onset (ms)')
                     end
-                    if si == 1
+                    if di == 1
                         ylabel('Eye velocity (deg/s)')
                     end
                     title(['Dir = ' num2str(directions(di)) ', Speed = ' num2str(speeds(si))])
