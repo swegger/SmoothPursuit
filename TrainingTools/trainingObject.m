@@ -19,6 +19,8 @@ classdef trainingObject
         motionOnOff;
         eye;
         calib;
+        rotation;
+        reward;
     end
     
     methods
@@ -57,13 +59,20 @@ classdef trainingObject
         end
         
         %% Analysis methods
-        function [condInds, condLogical] = trialSort(obj,directions,speeds,locations)
+        function [condInds, condLogical] = trialSort(obj,directions,speeds,undoRotation)
         % Find indices of all trials with direction  in directions, speed
         % in speeds, location in locations.
+            if ~exist('undoRotation','var')
+                undoRotation = false;
+            end
             if isnan(directions)
                 dMask = true(size(obj.directions));
             else
-                dMask = ismember(obj.directions,directions);
+                if undoRotation
+                    dMask = ismember(obj.directions+obj.rotation,directions);
+                else
+                    dMask = ismember(obj.directions,directions);
+                end
             end
             
             if isnan(speeds)
@@ -104,6 +113,8 @@ classdef trainingObject
                         obj.trialDataFiles{ind} = files(ti+fileInx-1).name;
                         
                         % Parse trial info
+                        obj.rotation(ind,1) = file.key.iVelTheta/1000;
+                        obj.reward(ind,1) = file.key.iRewLen1;
                         obj.directions(ind,1) = str2double(...
                             extractBefore(file.trialname,'-'));
                         obj.speeds(ind,1) = str2double(...
@@ -133,26 +144,62 @@ classdef trainingObject
         end
         
         
-        function [mE,steE,E] = MeanEyeSpeed(obj,condInds,varargin)
-        % Plots mean eye speed for a set of trials specified in condLogical
+        function [vE,hE,vEmean,hEmean,vEste,hEste] = MeanEyeSpeed(obj,varargin)
+        % Computes mean eye speed for a set of trials specified in condInds
             % Parse inputs
             Parser = inputParser;
             addRequired(Parser,'obj')
-            addRequired(Parser,'condInds')
-            addParameter(Parser,'t',NaN)
-            addParameter(Parser,'normalizer',1)
+            addParameter(Parser,'directions',NaN)
+            addParameter(Parser,'speeds',NaN)
+            addParameter(Parser,'onTime',-250)
+            addParameter(Parser,'offTime',0)
+            addParameter(Parser,'maxTrials',200)
+            addParameter(Parser,'maxDir',3000)
+            addParameter(Parser,'undoRotation',true)
             
-            parse(Parser,obj,condInds,varargin{:})
+            parse(Parser,obj,varargin{:})
             
             obj = Parser.Results.obj;
-            condInds = Parser.Results.condInds;
-            t = Parser.Results.t;
-            normalizer = Parser.Results.normalizer;
+            directions = Parser.Results.directions;
+            speeds = Parser.Results.speeds;
+            onTime = Parser.Results.onTime;
+            offTime = Parser.Results.offTime;
+            maxTrials = Parser.Results.maxTrials;
+            maxDir = Parser.Results.maxDir;
+            undoRotation = Parser.Results.undoRotation;
             
-            E = (sqrt(vertcat(obj.eye(condInds).hvel).^2 + ...
-                vertcat(obj.eye(condInds).vvel).^2 ))/normalizer;
-            mE = nanmean(E,1);
-            steE = sqrt(nanvar(E,[],1)/length(condInds));
+            if any(isnan(directions))
+                if undoRotation
+                    directions = unique(obj.directions+obj.rotation);
+                else
+                    directions = unique(obj.directions);
+                end
+            end
+            
+            if any(isnan(speeds))
+                speeds = unique(obj.speeds);
+            end
+            
+            vE = nan(maxDir,maxTrials,length(directions),length(speeds));
+            hE = nan(maxDir,maxTrials,length(directions),length(speeds));
+            for si = 1:length(speeds)
+                for di = 1:length(directions)
+                    [condInds,~] = trialSort(obj,directions(di),speeds(si),undoRotation);
+                    
+                    for i = 1:length(condInds)
+                        timePoints = length(obj.eye(condInds(i)).vvel( (obj.onOff(condInds(i),1)+onTime) : (obj.motionOnOff(condInds(i),2))+offTime) );
+                        vE(1:timePoints,i,di,si) = obj.eye(condInds(i)).vvel( (obj.onOff(condInds(i),1)+onTime) : (obj.motionOnOff(condInds(i),2)+offTime) );
+                        hE(1:timePoints,i,di,si) = obj.eye(condInds(i)).hvel( (obj.onOff(condInds(i),1)+onTime) : (obj.motionOnOff(condInds(i),2)+offTime) );
+                    end
+                    nTrials(1,1,di,si) = length(condInds);
+                end
+            end
+            
+            vEmean = nanmean(vE,2);
+            vEste = sqrt(nanvar(vE,[],2)./repmat(nTrials,[maxDir,maxTrials,1,1]));
+            
+            hEmean = nanmean(hE,2);
+            hEste = sqrt(nanvar(hE,[],2)./repmat(nTrials,[maxDir,maxTrials,1,1]));
             
         end
         
@@ -170,6 +217,7 @@ classdef trainingObject
             addParameter(Parser,'NormalizeTime',false)
             addParameter(Parser,'sampleN',NaN)
             addParameter(Parser,'colorAlpha',NaN)
+            addParameter(Parser,'undoRotation',true)
             
             parse(Parser,obj,directions,speeds,varargin{:})
             
@@ -179,7 +227,8 @@ classdef trainingObject
             NormalizeTime = Parser.Results.NormalizeTime;
             sampleN = Parser.Results.sampleN;
             colorAlpha = Parser.Results.colorAlpha;
-            
+            undoRotation = Parser.Results.undoRotation;
+                        
             % Make figure
             h = figure('Name','Eye traces by direction and speed','Units','Normalized','Position',[0.1310 0.0340 0.4377 0.8597]);
             ind = 0;
@@ -187,7 +236,7 @@ classdef trainingObject
                 for di = 1:length(directions)
                     ind = ind+1;
                     subplot(length(speeds),length(directions),ind)
-                    [condInds,~] = trialSort(obj,directions(di),speeds(si),NaN);
+                    [condInds,~] = trialSort(obj,directions(di),speeds(si),undoRotation);
                     
                     if isnan(sampleN)
                         sampleN = length(condInds);
@@ -219,7 +268,7 @@ classdef trainingObject
                     if NormalizeTime
                         xlim([0 1])
                     else
-                        xlim([0 1800])
+                        xlim([0 2250])
                     end
                     ylim([-max(speeds)*1.25 max(speeds)*1.25])
                     lineProps.color = 'b';
@@ -241,59 +290,73 @@ classdef trainingObject
             end
         end
         
-        function h = plotMeanEyeVelocity(obj,condLogical,varargin)
+        function h = plotMeanEyeVelocity(obj,varargin)
         % Plots mean eye velocity for a set of trials specified in condLogical
             % Parse inputs
             Parser = inputParser;
             addRequired(Parser,'obj')
-            addRequired(Parser,'condLogical')
-            addParameter(Parser,'h',NaN)
-            addParameter(Parser,'sh',NaN)
-            addParameter(Parser,'t',NaN)
-            addParameter(Parser,'color',NaN)
+            addParameter(Parser,'directions',NaN)
+            addParameter(Parser,'speeds',NaN)
+            addParameter(Parser,'onTime',-250)
+            addParameter(Parser,'offTime',0)
+            addParameter(Parser,'maxTrials',200)
+            addParameter(Parser,'maxDir',3000)
+            addParameter(Parser,'vEmean',NaN)
+            addParameter(Parser,'hEmean',NaN)
+            addParameter(Parser,'undoRotation',true)
             
-            parse(Parser,obj,condLogical,varargin{:})
+            parse(Parser,obj,varargin{:})
             
             obj = Parser.Results.obj;
-            condLogical = Parser.Results.condLogical;
-            h = Parser.Results.h;
-            sh = Parser.Results.sh;
-            t = Parser.Results.t;
-            color = Parser.Results.color;
+            directions = Parser.Results.directions;
+            speeds = Parser.Results.speeds;
+            onTime = Parser.Results.onTime;
+            offTime = Parser.Results.offTime;
+            maxTrials = Parser.Results.maxTrials;
+            maxDir = Parser.Results.maxDir;
+            vEmean = Parser.Results.vEmean;
+            hEmean = Parser.Results.hEmean;
+            undoRotation = Parser.Results.undoRotation;
             
-            if ishandle(h)
-                figure(h);
-            else
-                h = figure;
-            end
-            if ishandle(sh)
-                subplot(sh)
-            end
-            E(:,:,1) = vertcat(obj.eye(~~condLogical).hvel);
-            E(:,:,2) = vertcat(obj.eye(~~condLogical).vvel);
-            mE = nanmean(E,1);
-            steE = sqrt(nanvar(E,[],1)/sum(condLogical));
-            
-            if isnan(t)
-                t = 0:size(mE,2)-1;
+            if any(isnan(directions))
+                if undoRotation
+                    directions = unique(obj.directions+obj.rotation);
+                else
+                    directions = unique(obj.directions);
+                end
             end
             
-            patchProps.FaceAlpha = 0.3;
-            if ~any(isnan(color))
-                patchProps.FaceColor = color;
-            else
-                color = [0 0 0];
-                patchProps.FaceColor = color;
+            if any(isnan(speeds))
+                speeds = unique(obj.speeds);
             end
-            Etemp = mE(:,:,1);
-            steEtemp = steE(:,:,1);
-            myPatch(t(:),Etemp(:),steEtemp(:),'patchProperties',patchProps);
-            hold on
-            Etemp = mE(:,:,2);
-            steEtemp = steE(:,:,2);
-            myPatch(t(:),Etemp(:),steEtemp(:),'patchProperties',patchProps);
-            plot(t,mE(:,:,1),'Color',color,'LineWidth',2)
-            plot(t,mE(:,:,2),'--','Color',color,'LineWidth',2)
+            
+            if any(isnan(vEmean(:))) | any(isnan(vHmean(:)))
+                [~,~,vEmean,hEmean,~,~] = MeanEyeSpeed(obj,'directions',directions,'speeds',speeds,...
+                    'onTime',onTime,'offTime',offTime,'maxTrials',maxTrials,'undoRotation',undoRotation);
+            end
+            t = onTime:size(vEmean,1)+onTime-1;
+            
+            figure('Name','Mean eye velocities','Units','Normalized','Position',[0.1310 0.0340 0.4377 0.8597])
+            ind = 0;
+            for si = 1:length(speeds)
+                for di = 1:length(directions)
+                    ind = ind+1;
+                    subplot(length(speeds),length(directions),ind)
+                    plot(t,hEmean(:,1,di,si),'b-')
+                    hold on
+                    plot(t,vEmean(:,1,di,si),'r-')
+                    xlabel('Time (ms)')
+                    ylabel('Velocity (deg/s)')
+                    
+                    xlim([onTime size(vEmean,1)+onTime])
+                    ylim([-max(speeds)*1.25 max(speeds)*1.25])
+                    lineProps.color = 'b';
+                    lineProps.LineStyle = '--';
+                    plotHorizontal(cosd(directions(di))*speeds(si),'lineProperties',lineProps);
+                    lineProps.color = 'r';
+                    plotHorizontal(sind(directions(di))*speeds(si),'lineProperties',lineProps);
+                end
+            end
         end  
         
     end
