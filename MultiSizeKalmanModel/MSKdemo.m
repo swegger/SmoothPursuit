@@ -33,7 +33,7 @@ Wt = Parser.Results.Wt;
 
 Zs = repmat(zs(:),[1,T]);
 
-colors = projectColorMaps('speeds','samples',1:length(zs),'sampleDepth',5);
+colors = projectColorMaps_coh('speeds','samples',1:length(zs),'sampleDepth',5);
 
 %% Run simulation
 for ni = 1:length(Ns)

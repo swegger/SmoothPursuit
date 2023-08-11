@@ -31,6 +31,7 @@ va = [zeros(size(v,1),1),diff(v,1,2)];
 
 inds = abs(ha) > accelerationThreshold | abs(va) > accelerationThreshold;
 sinds = smooth(inds,windowSize);
+%sinds = smoothdata(inds,2,'movmean',windowSize);
 sacInds = sinds > 0;
 
 %% Find times of saccades

@@ -191,13 +191,13 @@ f = tuning.n0 + ...
 function f = dirTuning(theta,coh,tuning)
     f = ...
         exp( -(theta - tuning.theta.pref).^2./...
-        ( (tuning.theta.sig*100/coh) .^2/2 ) );
+        ( (tuning.theta.sig) .^2/2 ) );
     
 %% speedTuning
 function f = speedTuning(speed,coh,tuning)
     
     f = exp( -( log2(speed./tuning.speed.pref) ).^2 ./ ...
-        ( (tuning.speed.sig*100/coh) .^2/2 ) );
+        ( (tuning.speed.sig) .^2/2 ) );
 
 %% sizeTuning
 function f = sizeTuning(sz,tuning)
@@ -378,7 +378,7 @@ tuning.theta.pref = Ts(:);
 tuning.theta.sig = 45;
 
 tuning.speed.pref = Ss(:);
-tuning.speed.sig = 1;
+tuning.speed.sig = 1.64;
 tuning.speed.d = 0.1;
 
 tuning.size.x = zeros(size(tuning.speed.pref));
