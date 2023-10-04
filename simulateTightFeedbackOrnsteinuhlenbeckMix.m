@@ -15,7 +15,7 @@ addRequired(Parser,'G')
 addRequired(Parser,'dt')
 addRequired(Parser,'input')
 addRequired(Parser,'eta')
-addParameter(Parser,'latency',60)
+addParameter(Parser,'latency',0)
 addParameter(Parser,'x0',[NaN,NaN])
 addParameter(Parser,'t',NaN)
 addParameter(Parser,'assumeSteadyState',true)
@@ -30,6 +30,7 @@ eta = Parser.Results.eta;
 latency = Parser.Results.latency;
 x0 = Parser.Results.x0;
 t = Parser.Results.t;
+assumeSteadyState = Parser.Results.assumeSteadyState;
 plotOpts = Parser.Results.plotOpts;
 
 if any(size(input) ~= size(eta))
@@ -59,7 +60,7 @@ for ti = 2:T
         x(:,ti) = x(:,ti-1) + dx(:,ti)*dt;
     else
         if assumeSteadyState
-            tempState = G(1)*inputControl(1,1)/(1-G(2)+G(1));
+            tempState = G(1)*input(1,1)/(1-G(2)+G(1));
         else
             tempState = 0;
         end
