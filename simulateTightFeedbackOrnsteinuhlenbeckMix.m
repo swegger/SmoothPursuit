@@ -64,7 +64,7 @@ for ti = 2:T
         else
             tempState = 0;
         end
-        slip(:,ti) = ones(size(input,1),1);
+        slip(:,ti) = tempState*ones(size(input,1),1)-x(:,ti-1);
         slip(isnan(slip(:,ti)),ti) = 0;
         dx(:,ti) = -(1-G(2))*x(:,ti-1) + G(1)*slip(:,ti) + eta(:,ti);
         x(:,ti) = x(:,ti-1) + dx(:,ti)*dt;        
